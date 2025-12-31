@@ -1,29 +1,37 @@
-import './bootstrap.js';
-import express from 'express';
 import http from 'http';
+import mongoose from 'mongoose';
+import app from './app.js';
 import logger from './utils/logger.js';
 import { env } from './config/env.config.js';
-import router from './routes/user.route.js';
-import healthRouter from './routes/health.route.js';
+import { connectDatabase } from './config/db.config.js';
 
-const app = express();
 const port: number = env.PORT || 3000;
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.use('/', healthRouter);
-app.use('/', router);
+const startServer = async () => {
+  await connectDatabase();
 
-const server = http.createServer(app);
+  const server = http.createServer(app);
 
-server.listen(port, () => logger.info(`server started ${env.SERVER_URL}`));
+  server.listen(port, () => logger.info(`Server started at ${env.SERVER_URL}`));
 
-process.on('SIGTERM', async () => {
-  logger.warn('SIGTERM received. Shutting down gracefully...');
+  const shutdown = async () => {
+    logger.warn('SIGTERM/SIGINT received. Shutting down gracefully...');
+    server.close(async () => {
+      logger.info('HTTP server closed');
 
-  server.close(() => {
-    logger.info('HTTP server closed');
+      try {
+        await mongoose.connection.close(false);
+        logger.info('MongoDB connection closed');
+      } catch (error) {
+        logger.error('Error closing MongoDB connection', error);
+      }
 
-    process.exit(0);
-  });
-});
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+};
+
+startServer();

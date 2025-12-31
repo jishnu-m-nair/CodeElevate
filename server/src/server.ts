@@ -1,6 +1,7 @@
 import './bootstrap.js';
 import express from 'express';
 import http from 'http';
+import logger from './utils/logger.js';
 import { env } from './config/env.config.js';
 import router from './routes/user.route.js';
 
@@ -13,4 +14,4 @@ app.use('/', router);
 
 const server = http.createServer(app);
 
-server.listen(port, () => console.log('server started'));
+server.listen(port, () => logger.info(`server started ${env.SERVER_URL}`));

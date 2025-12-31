@@ -1,4 +1,4 @@
 export const NODE_ENV = {
-    DEVELOPMENT: "development",
-    PRODUCTION: "production"
+  DEVELOPMENT: 'development',
+  PRODUCTION: 'production',
 } as const;

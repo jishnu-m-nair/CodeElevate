@@ -7,6 +7,7 @@
   "scripts": {
     "lint": "eslint 'src/**/*.{ts,tsx,js,jsx}'",
     "lint:fix": "eslint 'src/**/*.{ts,tsx,js,jsx}' --fix",
+    "lint:file": "eslint --fix",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,md}'",
     "dev": "cross-env NODE_ENV=development nodemon",
     "build": "tsc",
@@ -15,15 +16,24 @@
   "author": "Jishnu M",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "dotenv-flow": "^4.1.0",
     "express": "^5.2.1",
-    "mongoose": "^9.1.0",
+    "express-session": "^1.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.20.2",
+    "nodemailer": "^7.0.12",
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.6",
+    "@types/express-session": "^1.18.2",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^25.0.3",
+    "@types/nodemailer": "^7.0.4",
     "@typescript-eslint/eslint-plugin": "^8.51.0",
     "@typescript-eslint/parser": "^8.51.0",
     "cross-env": "^10.1.0",

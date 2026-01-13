@@ -18,4 +18,6 @@ export const env = {
   SMTP_PASS: process.env['SMTP_PASS'],
   JWT_ACCESS_SECRET: process.env['JWT_ACCESS_SECRET'],
   JWT_REFRESH_SECRET: process.env['JWT_REFRESH_SECRET'],
+  FRONTEND_URL: process.env['FRONTEND_URL'],
+  FRONTEND_URL2: process.env['FRONTEND_URL2'],
 } as const;

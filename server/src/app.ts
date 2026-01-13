@@ -1,6 +1,7 @@
 import './bootstrap.js';
 import express from 'express';
 import session from 'express-session';
+import cors from 'cors';
 import router from './routes/user.route.js';
 import healthRouter from './routes/health.route.js';
 import { env } from './config/env.config.js';
@@ -9,6 +10,16 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const URLArray = [env.FRONTEND_URL, env.FRONTEND_URL2] as string[];
+
+app.use(
+  cors({
+    origin: URLArray,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
 
 app.use(
   session({

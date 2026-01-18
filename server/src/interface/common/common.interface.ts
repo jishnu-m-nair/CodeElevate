@@ -14,3 +14,14 @@ export interface LoginResponse {
     role: string;
   };
 }
+
+export type RecruiterStatus = 'approved' | 'rejected' | 'pending';
+
+export const RECRUITER_STATUSES: RecruiterStatus[] = ['approved', 'rejected', 'pending'];
+export const DEFAULT_RECRUITER_STATUS: RecruiterStatus = 'pending';
+
+export type AuthProvider = 'local' | 'google';
+
+export const AUTH_PROVIDERS: AuthProvider[] = ['local', 'google'];
+
+export type AuthRole = 'admin' | 'recruiter' | 'user';

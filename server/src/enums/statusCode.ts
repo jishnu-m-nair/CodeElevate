@@ -1,17 +1,17 @@
-const StatusCode = {
+export const StatusCode = {
   OK: 200,
-  Created: 201,
-  Accepted: 202,
-  NoChange: 301,
-  TaskFailed: 304,
-  BadRequest: 400,
-  Unauthorized: 401,
-  Forbidden: 403,
-  NotFound: 404,
-  Conflict: 409,
-  Expired: 410,
-  InternalServerError: 500,
-  ServiceUnavailable: 503,
+  CREATED: 201,
+  ACCEPTED: 202,
+  NO_CHANGE: 301,
+  TASK_FAILED: 304,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  EXPIRED: 410,
+  INTERNAL_SERVER_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503,
 } as const;
 
-export default StatusCode;
+export type StatusCode = (typeof StatusCode)[keyof typeof StatusCode];

@@ -1,3 +1,4 @@
+import type { AuthProvider } from '../interface/common/common.interface.js';
 import type { IUserDocument } from '../interface/models/user.interface.js';
 import type { IUserRepository } from '../interface/repositories/userRepo.interface.js';
 import UserModel from '../models/user.model.js';
@@ -8,21 +9,41 @@ class UserRepository extends BaseRepository<IUserDocument> implements IUserRepos
     super(UserModel);
   }
 
-  async createUser(data: Partial<IUserDocument>): Promise<IUserDocument> {
-    return this.create(data);
+  async findByEmail(email: string): Promise<IUserDocument | null> {
+    return this.findOne({ email });
   }
 
-  async findByUserId(userId: string): Promise<IUserDocument | null> {
-    return super.findById(userId);
+  private async setBlocked(id: string, blocked: boolean): Promise<boolean> {
+    return await this.updateRaw({ _id: id }, { isBlocked: blocked });
   }
 
-  async updateProfile(userId: string, data: Partial<IUserDocument>): Promise<IUserDocument | null> {
-    return this.updateOne({ _id: userId }, data);
+  async block(id: string): Promise<boolean> {
+    return this.setBlocked(id, true);
+  }
+
+  async verifyEmail(email: string): Promise<boolean> {
+    return await this.updateRaw({ email }, { isVerified: true, isBlocked: false });
+  }
+
+  async unblock(id: string): Promise<boolean> {
+    return this.setBlocked(id, false);
+  }
+
+  async updatePassword(id: string, hashedPassword: string): Promise<void> {
+    await this.updateOrFail({ _id: id }, { password: hashedPassword });
+  }
+
+  async updateProfile(id: string, data: Partial<IUserDocument>): Promise<IUserDocument | null> {
+    return this.updateOne({ _id: id }, data);
+  }
+
+  async addProvider(id: string, provider: AuthProvider): Promise<IUserDocument | null> {
+    return await this.updateOne({ _id: id }, { $addToSet: { providers: provider } });
   }
 
   async existsByUsername(username: string): Promise<boolean> {
-    const count = await this.model.countDocuments({ username });
-    return count > 0;
+    const result = await this.model.exists({ username });
+    return result !== null;
   }
 }
 

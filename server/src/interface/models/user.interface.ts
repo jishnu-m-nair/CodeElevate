@@ -1,15 +1,19 @@
-import mongoose, { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import type { AuthProvider } from '../common/common.interface.js';
 
 export interface IUserDocument extends Document {
-  _id: mongoose.Types.ObjectId;
-  authUserId: mongoose.Types.ObjectId;
-
+  _id: Types.ObjectId;
   name: string;
   email: string;
+  password: string;
   username: string;
   phone?: string;
   profilePicture?: string;
+  isBlocked: boolean;
+  isVerified: boolean;
+  providers: AuthProvider[];
 
+  //Cached user stats (derived)
   totalScore: number;
   totalSubmissions: number;
   totalAccepted: number;

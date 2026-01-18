@@ -1,202 +1,449 @@
-import StatusCode from '../enums/statusCode.js';
+import { env } from '../config/env.config.js';
+import { redis } from '../config/redis.config.js';
+// import StatusCode from '../enums/statusCode.js';
 import { CustomError } from '../errors/CustomError.js';
-import type { OtpData, LoginResponse } from '../interface/common/common.interface.js';
-import AuthUserRepository from '../repositories/authUser.repository.js';
-import UserRepository from '../repositories/user.repository.js';
-import { generateAccessToken, generateRefreshToken } from '../utils/authTokens.js';
+import type { AuthRole } from '../interface/common/common.interface.js';
+import type { IAdminRepository } from '../interface/repositories/adminRepo.interface.js';
+import type { IRecruiterRepository } from '../interface/repositories/recruiterRepo.interface.js';
+import type { IUserRepository } from '../interface/repositories/userRepo.interface.js';
+import type {
+  AdminData,
+  AuthEntity,
+  AuthPayload,
+  ForgotPasswordResponse,
+  IAuthService,
+  LoginResponse,
+  LogoutResponse,
+  OtpVerificationResponse,
+  RecruiterData,
+  RefreshTokenResponse,
+  ResendOtpResponse,
+  ResetPasswordResponse,
+  SignupRecruiterDTO,
+  SignupResponse,
+  SignupUserDTO,
+  UserData,
+} from '../interface/services/authService.interface.js';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from '../utils/authTokens.js';
 import { sendOtpMail } from '../utils/mailer.js';
 import { generateOtp } from '../utils/otp.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { generateUsernameBase } from '../utils/username.js';
 
-class AuthService {
+class AuthService implements IAuthService {
   constructor(
-    private authUserRepo: AuthUserRepository,
-    private userRepo: UserRepository,
+    private _userRepo: IUserRepository,
+    private _recruiterRepo: IRecruiterRepository,
+    private _adminRepo: IAdminRepository,
   ) {}
 
-  async userLogin(email: string, password: string): Promise<LoginResponse> {
-    this.validateLoginInput(email, password);
-
-    const authUser = await this.authUserRepo.findByEmail(email);
-    if (!authUser) {
-      throw new CustomError('Invalid email or password', StatusCode.Unauthorized);
-    }
-    if (!authUser.password) {
-      throw new CustomError('Please use other login methods', StatusCode.BadRequest);
-    }
-    if (!authUser.isVerified) {
-      throw new CustomError('Please verify your email before login', StatusCode.Forbidden);
+  private async loginEntity<T extends AuthEntity, P extends AuthPayload>(
+    entity: T | null,
+    password: string,
+    role: AuthRole,
+    accessCheck: (entity: T) => void,
+    buildPayload: (entity: T) => P,
+  ): Promise<LoginResponse> {
+    if (!entity) {
+      throw new CustomError('Invalid email or password', 401);
     }
 
-    if (authUser.isBlocked) {
-      throw new CustomError('User is blocked', StatusCode.Forbidden);
+    accessCheck(entity);
+
+    if (role !== 'admin') {
+      if (!entity.providers?.includes('local')) {
+        throw new CustomError('Invalid email or password', 401);
+      }
+
+      const valid = await comparePassword(password, entity.password!);
+      if (!valid) {
+        throw new CustomError('Invalid email or password', 401);
+      }
     }
 
-    const isMatch = await comparePassword(password, authUser.password);
-    if (!isMatch) {
-      throw new CustomError('Invalid email or password', StatusCode.Unauthorized);
-    }
-
-    const payload = {
-      sub: authUser.id,
-      role: authUser.role,
-    };
-
-    const accessToken = generateAccessToken(payload);
-    const refreshToken = generateRefreshToken(payload);
+    const userData: P = buildPayload(entity);
+    const tokens = await this.generateTokens(userData.id, role);
 
     return {
-      accessToken,
-      refreshToken,
-      user: {
-        userId: authUser.entityId.toString(),
-        authUserId: authUser.id,
-        email: authUser.email,
-        role: authUser.role,
+      success: true,
+      message: 'Login successful',
+      data: { ...tokens, user: userData },
+    };
+  }
+
+  async loginUser(email: string, password: string): Promise<LoginResponse> {
+    const user = await this._userRepo.findByEmail(email);
+    if (!user) throw new CustomError('Invalid email or password', 401);
+
+    return this.loginEntity<typeof user, UserData>(
+      user,
+      password,
+      'user',
+      (u) => {
+        this.validateAccountAccess({ isBlocked: u.isBlocked });
+        if (!u.isVerified) throw new CustomError('Access denied', 403);
+      },
+      (u): UserData => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: 'user',
+        isVerified: u.isVerified,
+      }),
+    );
+  }
+
+  async loginRecruiter(email: string, password: string): Promise<LoginResponse> {
+    const recruiter = await this._recruiterRepo.findByEmail(email);
+    if (!recruiter) throw new CustomError('Invalid email or password', 401);
+
+    return this.loginEntity<typeof recruiter, RecruiterData>(
+      recruiter,
+      password,
+      'recruiter',
+      (r) => {
+        this.validateAccountAccess({ isBlocked: r.isBlocked });
+        if (!r.isVerified) throw new CustomError('Access denied', 403);
+      },
+      (r): RecruiterData => ({
+        id: r.id,
+        email: r.email,
+        companyName: r.companyName,
+        role: 'recruiter',
+        isVerified: r.isVerified,
+      }),
+    );
+  }
+
+  async loginAdmin(email: string, password: string): Promise<LoginResponse> {
+    const admin = await this._adminRepo.findByEmail(email);
+    if (!admin) throw new CustomError('Invalid email or password', 401);
+
+    return this.loginEntity<typeof admin, AdminData>(
+      admin,
+      password,
+      'admin',
+      async (a) => {
+        this.validateAccountAccess({ isActive: a.isActive });
+
+        const valid = await comparePassword(password, a.password);
+        if (!valid) {
+          throw new CustomError('Invalid email or password', 401);
+        }
+      },
+      (a): AdminData => ({
+        id: a.id,
+        email: a.email,
+        role: 'admin',
+      }),
+    );
+  }
+
+  async signupUser(data: SignupUserDTO): Promise<SignupResponse> {
+    const exists = await this._userRepo.findByEmail(data.email);
+    if (exists) throw new CustomError('Email already registered', 409);
+
+    const password = await hashPassword(data.password);
+
+    const username = await this.generateUniqueUsername(data.name, data.email);
+
+    const user = await this._userRepo.create({
+      ...data,
+      username,
+      providers: ['local'],
+      password,
+      isVerified: false,
+    });
+
+    await this.generateAndSendOtp(user.email, 'user');
+
+    return {
+      success: true,
+      message: 'Signup successful. Please verify your email.',
+      data: { userId: user.id, email: user.email },
+    };
+  }
+
+  async signupRecruiter(data: SignupRecruiterDTO): Promise<SignupResponse> {
+    const exists = await this._recruiterRepo.findByEmail(data.email);
+    if (exists) throw new CustomError('Email already registered', 409);
+
+    const password = await hashPassword(data.password);
+
+    const recruiter = await this._recruiterRepo.create({
+      ...data,
+      password,
+      providers: ['local'],
+      isVerified: false,
+    });
+
+    await this.generateAndSendOtp(recruiter.email, 'recruiter');
+
+    return {
+      success: true,
+      message: 'Signup successful. Please verify your email.',
+      data: { userId: recruiter.id, email: recruiter.email },
+    };
+  }
+
+  private async verifyOtp(email: string, role: 'user' | 'recruiter', otp: string): Promise<void> {
+    const key = `otp:verify:${role}:${email}`;
+    const data = await redis.get(key);
+
+    if (!data) {
+      throw new CustomError('Invalid or expired OTP', 400);
+    }
+
+    const { otp: storedOtp } = JSON.parse(data);
+    if (storedOtp !== otp) {
+      throw new CustomError('Invalid or expired OTP', 400);
+    }
+
+    await redis.del(key);
+  }
+
+  async verifyUserOtp(email: string, otp: string): Promise<OtpVerificationResponse> {
+    await this.verifyOtp(email, 'user', otp);
+
+    const user = await this._userRepo.findByEmail(email);
+    if (!user) throw new CustomError('User not found', 404);
+
+    await this._userRepo.verifyEmail(email);
+
+    const tokens = await this.generateTokens(user.id, 'user');
+
+    return {
+      success: true,
+      message: 'Email verified successfully',
+      data: {
+        ...tokens,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: 'user',
+          isVerified: true,
+        },
       },
     };
   }
 
-  private async generateUsername(name: string, email: string): Promise<string> {
+  async verifyRecruiterOtp(email: string, otp: string): Promise<OtpVerificationResponse> {
+    await this.verifyOtp(email, 'recruiter', otp);
+
+    const recruiter = await this._recruiterRepo.findByEmail(email);
+    if (!recruiter) throw new CustomError('Recruiter not found', 404);
+
+    await this._recruiterRepo.verifyEmail(email);
+
+    const tokens = await this.generateTokens(recruiter.id, 'recruiter');
+
+    return {
+      success: true,
+      message: 'Email verified successfully',
+      data: {
+        ...tokens,
+        user: {
+          id: recruiter.id,
+          email: recruiter.email,
+          companyName: recruiter.companyName,
+          role: 'recruiter',
+          isVerified: true,
+        },
+      },
+    };
+  }
+
+  async resendUserOtp(email: string): Promise<ResendOtpResponse> {
+    const user = await this._userRepo.findByEmail(email);
+    if (!user) throw new CustomError('User not found', 404);
+    if (user.isVerified) throw new CustomError('Email already verified', 400);
+
+    await this.generateAndSendOtp(email, 'user');
+
+    return {
+      success: true,
+      message: 'OTP resent successfully',
+    };
+  }
+
+  async resendRecruiterOtp(email: string): Promise<ResendOtpResponse> {
+    const recruiter = await this._recruiterRepo.findByEmail(email);
+    if (!recruiter) throw new CustomError('Recruiter not found', 404);
+    if (recruiter.isVerified) throw new CustomError('Email already verified', 400);
+
+    await this.generateAndSendOtp(email, 'recruiter');
+
+    return {
+      success: true,
+      message: 'OTP resent successfully',
+    };
+  }
+
+  async forgotPasswordUser(email: string): Promise<ForgotPasswordResponse> {
+    const user = await this._userRepo.findByEmail(email);
+
+    const response = {
+      success: true,
+      message: 'If an account exists, a reset link has been sent.',
+    };
+
+    if (!user) return response;
+
+    if (!user.providers?.includes('local')) {
+      return response;
+    }
+
+    const token = crypto.randomUUID();
+    const key = `password:reset:user:${token}`;
+
+    await redis.set(key, user.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
+    await sendOtpMail(email, token);
+
+    return response;
+  }
+
+  async forgotPasswordRecruiter(email: string): Promise<ForgotPasswordResponse> {
+    const recruiter = await this._recruiterRepo.findByEmail(email);
+
+    const response = {
+      success: true,
+      message: 'If an account exists, a reset link has been sent.',
+    };
+    if (!recruiter) return response;
+
+    if (!recruiter.providers?.includes('local')) {
+      return response;
+    }
+
+    const token = crypto.randomUUID();
+    const key = `password:reset:recruiter:${token}`;
+
+    await redis.set(key, recruiter.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
+    await sendOtpMail(email, token);
+
+    return response;
+  }
+
+  async resetPasswordUser(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+    const key = `password:reset:user:${token}`;
+    const userId = await redis.get(key);
+
+    if (!userId) throw new CustomError('Invalid or expired reset link', 400);
+
+    const user = await this._userRepo.findById(userId);
+    if (!user) throw new CustomError('Invalid or expired reset link', 400);
+
+    if (!user.providers?.includes('local')) {
+      throw new CustomError('Password reset not allowed for this account', 400);
+    }
+
+    const hashed = await hashPassword(newPassword);
+    await this._userRepo.updatePassword(userId, hashed);
+
+    await redis.del(key);
+
+    return {
+      success: true,
+      message: 'Password reset successfully',
+    };
+  }
+
+  async resetPasswordRecruiter(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+    const key = `password:reset:recruiter:${token}`;
+    const recruiterId = await redis.get(key);
+
+    if (!recruiterId) throw new CustomError('Invalid or expired reset link', 400);
+
+    const recruiter = await this._recruiterRepo.findById(recruiterId);
+    if (!recruiter) throw new CustomError('Invalid or expired reset link', 400);
+
+    if (!recruiter.providers?.includes('local')) {
+      throw new CustomError('Password reset not allowed for this account', 400);
+    }
+
+    const hashed = await hashPassword(newPassword);
+    await this._recruiterRepo.updatePassword(recruiterId, hashed);
+
+    await redis.del(key);
+
+    return {
+      success: true,
+      message: 'Password reset successfully',
+    };
+  }
+
+  async logout(userId: string, refreshToken: string): Promise<LogoutResponse> {
+    const key = `auth:logout:${refreshToken}`;
+
+    await redis.set(key, userId, 'EX', env.REFRESH_TOKEN_TTL_SECONDS);
+
+    return {
+      success: true,
+      message: 'Logged out successfully',
+    };
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
+    const blacklisted = await redis.get(`auth:logout:${refreshToken}`);
+    if (blacklisted) throw new CustomError('Session expired', 401);
+
+    const payload = verifyRefreshToken(refreshToken);
+
+    const accessToken = generateAccessToken({
+      sub: payload.sub,
+      role: payload.role,
+    });
+
+    return {
+      success: true,
+      message: 'Token refreshed',
+      data: { accessToken },
+    };
+  }
+
+  private async generateAndSendOtp(email: string, role: 'user' | 'recruiter'): Promise<void> {
+    const otp = generateOtp(6).toString();
+    const key = `otp:verify:${role}:${email}`;
+
+    await redis.set(key, JSON.stringify({ otp }), 'EX', env.OTP_TTL_SECONDS);
+    console.log(otp);
+    await sendOtpMail(email, otp);
+  }
+
+  private validateAccountAccess(options: { isBlocked?: boolean; isActive?: boolean }) {
+    if (options.isBlocked === true || options.isActive === false) {
+      throw new CustomError('Access denied', 403);
+    }
+  }
+
+  private async generateTokens(
+    id: string,
+    role: AuthRole,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    return {
+      accessToken: generateAccessToken({ sub: id, role }),
+      refreshToken: generateRefreshToken({ sub: id, role }),
+    };
+  }
+
+  private async generateUniqueUsername(name: string, email: string): Promise<string> {
     const base = generateUsernameBase(name, email);
     let username = '';
     let exists = true;
 
     while (exists) {
-      const suffix = Math.floor(1000 + Math.random() * 9000);
-      username = `${base}_${suffix}`;
+      const suffix = Math.floor(100000 + Math.random() * 900000);
+      username = `${base}_${suffix}`.toLowerCase().trim();
 
-      exists = await this.userRepo.existsByUsername(username);
+      exists = await this._userRepo.existsByUsername(username);
     }
 
     return username;
-  }
-
-  async registerWithEmail(name: string, email: string, password: string): Promise<OtpData> {
-    this.validateRegistrationInput(name, email, password);
-    const existing = await this.authUserRepo.findByEmail(email);
-    if (existing) {
-      if (!existing.isVerified) {
-        return await this.generateAndSendOtp(email);
-      }
-      throw new CustomError('Email already registered', StatusCode.Conflict);
-    }
-
-    const hashedPassword = await hashPassword(password);
-
-    const authUser = await this.authUserRepo.createAuthUser({
-      email,
-      password: hashedPassword,
-      role: 'user',
-      providers: ['local'],
-      isVerified: false,
-      isBlocked: false,
-    });
-
-    const username = await this.generateUsername(name, email);
-
-    const user = await this.userRepo.createUser({
-      name,
-      email,
-      username,
-      authUserId: authUser.id,
-    });
-
-    await this.authUserRepo.updateEntityId(authUser.id, user.id);
-    return await this.generateAndSendOtp(email);
-  }
-
-  async verifyEmailOtp(email: string, otp: string, sessionData: OtpData): Promise<void> {
-    if (!sessionData) {
-      throw new CustomError('Invalid or Expired Otp', StatusCode.BadRequest);
-    }
-
-    if (sessionData.email !== email || sessionData.otp !== otp || Date.now() > sessionData.expiry) {
-      throw new CustomError('Invalid or expired OTP', StatusCode.BadRequest);
-    }
-
-    const authUser = await this.authUserRepo.findByEmail(email);
-    if (!authUser) {
-      throw new CustomError('Auth user not found', StatusCode.NotFound);
-    }
-
-    if (authUser.isVerified) {
-      return;
-    }
-
-    await this.authUserRepo.verifyUser(authUser.id);
-  }
-
-  async isUsernameAvailable(username: string): Promise<boolean> {
-    const normalized = username.toLowerCase().trim();
-
-    const exists = await this.userRepo.existsByUsername(normalized);
-    return !exists;
-  }
-
-  async resendEmailOtp(email: string): Promise<OtpData> {
-    const authUser = await this.authUserRepo.findByEmail(email);
-
-    if (!authUser) {
-      throw new CustomError('Invalid request', StatusCode.BadRequest);
-    }
-
-    if (authUser.isVerified) {
-      throw new CustomError('Email already verified', StatusCode.Conflict);
-    }
-
-    return await this.generateAndSendOtp(email);
-  }
-
-  private validateLoginInput(email: string, password: string): void {
-    if (!email?.trim()) {
-      throw new CustomError('Email is required', StatusCode.BadRequest);
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new CustomError('Invalid email format', StatusCode.BadRequest);
-    }
-
-    if (!password) {
-      throw new CustomError('Password is required', StatusCode.BadRequest);
-    }
-  }
-
-  private validateRegistrationInput(name: string, email: string, password: string): void {
-    if (!name?.trim()) {
-      throw new CustomError('Name is required', StatusCode.BadRequest);
-    }
-
-    if (!email?.trim()) {
-      throw new CustomError('Email is required', StatusCode.BadRequest);
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new CustomError('Invalid email format', StatusCode.BadRequest);
-    }
-
-    if (!password) {
-      throw new CustomError('Password is required', StatusCode.BadRequest);
-    }
-
-    if (password.length < 8) {
-      throw new CustomError('Password must be at least 8 characters long', StatusCode.BadRequest);
-    }
-  }
-
-  private async generateAndSendOtp(email: string): Promise<OtpData> {
-    const otp = generateOtp(6).toString();
-    const expiry = Date.now() + 10 * 60 * 1000;
-    console.log('otp : ', otp);
-    await sendOtpMail(email, otp);
-    return {
-      otp,
-      email,
-      expiry,
-    };
   }
 }
 

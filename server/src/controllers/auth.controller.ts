@@ -1,110 +1,228 @@
 import type { Request, Response, NextFunction } from 'express';
-
-import AuthService from '../services/auth.service.js';
-import statusCode from '../enums/statusCode.js';
 import { env } from '../config/env.config.js';
-import Messages from '../enums/messages.js';
+import type { IAuthService } from '../interface/services/authService.interface.js';
+import { sendResponse } from '../utils/httpResponse.js';
+import { StatusCode } from '../enums/statusCode.js';
 
 class AuthController {
-  constructor(private readonly _authService: AuthService) {}
+  constructor(private readonly _authService: IAuthService) {}
 
-  async userLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  loginUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password } = req.body;
+      const result = await this._authService.loginUser(email, password);
 
-      const { refreshToken, accessToken, user } = await this._authService.userLogin(
-        email,
-        password,
-      );
+      const { refreshToken, ...safeData } = result.data;
 
-      res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000,
+      this.setRefreshCookie(res, refreshToken);
+
+      sendResponse(res, StatusCode.OK, {
+        success: result.success,
+        message: result.message,
+        data: safeData,
       });
-
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-
-      res.status(statusCode.OK).json({
-        message: Messages.LOGIN_SUCCESS,
-        user,
-      });
-    } catch (error) {
-      next(error);
+    } catch (err) {
+      next(err);
     }
-  }
+  };
 
-  async registerWithEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+  loginRecruiter = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { name, email, password } = req.body;
+      const { email, password } = req.body;
+      const result = await this._authService.loginRecruiter(email, password);
 
-      const otpData = await this._authService.registerWithEmail(name, email, password);
+      const { refreshToken, ...safeData } = result.data;
 
-      if (!req.session.user) {
-        req.session.user = {};
-      }
+      this.setRefreshCookie(res, refreshToken);
 
-      req.session.user = otpData;
-
-      res.status(statusCode.Created).json({
-        message: Messages.USER_REGISTER_SUCCESS,
+      sendResponse(res, StatusCode.OK, {
+        success: result.success,
+        message: result.message,
+        data: safeData,
       });
-    } catch (error) {
-      next(error);
+    } catch (err) {
+      next(err);
     }
-  }
+  };
 
-  async verifyEmailOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+  loginAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, password } = req.body;
+      const result = await this._authService.loginAdmin(email, password);
+
+      const { refreshToken, ...safeData } = result.data;
+
+      this.setRefreshCookie(res, refreshToken);
+
+      sendResponse(res, StatusCode.OK, {
+        success: result.success,
+        message: result.message,
+        data: safeData,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  signupUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this._authService.signupUser(req.body);
+
+      sendResponse(res, StatusCode.CREATED, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  signupRecruiter = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this._authService.signupRecruiter(req.body);
+
+      sendResponse(res, StatusCode.CREATED, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  verifyUserOtp = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, otp } = req.body;
+      const result = await this._authService.verifyUserOtp(email, otp);
+      const { refreshToken, ...safeData } = result.data;
 
-      await this._authService.verifyEmailOtp(email, otp, req.session.user);
+      this.setRefreshCookie(res, refreshToken);
 
-      delete req.session.user;
-
-      res.status(statusCode.OK).json({
-        message: Messages.USER_EMAIL_VERIFIED,
+      sendResponse(res, StatusCode.OK, {
+        success: result.success,
+        message: result.message,
+        data: safeData,
       });
-    } catch (error) {
-      next(error);
+    } catch (err) {
+      next(err);
     }
-  }
+  };
 
-  async resendEmailOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+  verifyRecruiterOtp = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, otp } = req.body;
+      const result = await this._authService.verifyRecruiterOtp(email, otp);
+      const { refreshToken, ...safeData } = result.data;
+
+      this.setRefreshCookie(res, refreshToken);
+
+      sendResponse(res, StatusCode.OK, {
+        success: result.success,
+        message: result.message,
+        data: safeData,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  resendUserOtp = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email } = req.body;
+      const result = await this._authService.resendUserOtp(email);
 
-      const otpData = await this._authService.resendEmailOtp(email);
-
-      if (!req.session.user) {
-        req.session.user = {};
-      }
-
-      req.session.user = {
-        emailOtp: otpData.otp,
-        otpEmail: otpData.email,
-        otpExpiry: otpData.expiry,
-      };
-
-      res.status(statusCode.OK).json({
-        message: Messages.RESEND_OTP_SENT,
-      });
-    } catch (error) {
-      next(error);
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
     }
-  }
+  };
 
-  async logout(_req: Request, res: Response): Promise<void> {
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
+  resendRecruiterOtp = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+      const result = await this._authService.resendRecruiterOtp(email);
 
-    res.status(statusCode.OK).json({ message: Messages.USER_LOGOUT });
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  forgotPasswordUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+      const result = await this._authService.forgotPasswordUser(email);
+
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  forgotPasswordRecruiter = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+      const result = await this._authService.forgotPasswordRecruiter(email);
+
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  resetPasswordUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token, newPassword } = req.body;
+      const result = await this._authService.resetPasswordUser(token, newPassword);
+
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  resetPasswordRecruiter = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token, newPassword } = req.body;
+      const result = await this._authService.resetPasswordRecruiter(token, newPassword);
+
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  refreshAccessToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const refreshToken = req.cookies['refresh_token'];
+      const result = await this._authService.refreshAccessToken(refreshToken);
+
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  logout = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId } = req.body;
+      const refreshToken = req.cookies['refresh_token'];
+
+      const result = await this._authService.logout(userId, refreshToken);
+
+      res.clearCookie('refresh_token', {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: env.NODE_ENV === 'production',
+      });
+
+      sendResponse(res, StatusCode.OK, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  private setRefreshCookie(res: Response, token: string) {
+    res.cookie('refresh_token', token, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: env.REFRESH_TOKEN_MAX_AGE,
+    });
   }
 }
 

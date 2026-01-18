@@ -1,5 +1,6 @@
 import { Document, Model } from 'mongoose';
 import type { FilterQuery, UpdateQuery } from 'mongoose';
+import { CustomError } from '../errors/CustomError.js';
 
 export abstract class BaseRepository<T extends Document> {
   constructor(protected model: Model<T>) {}
@@ -25,12 +26,24 @@ export abstract class BaseRepository<T extends Document> {
     return this.model.findOneAndUpdate(filter, update, { new: true });
   }
 
+  async deleteOne(filter: FilterQuery<T>): Promise<T | null> {
+    return this.model.findOneAndDelete(filter);
+  }
+
   protected async updateRaw(filter: FilterQuery<T>, update: UpdateQuery<T>): Promise<boolean> {
     const result = await this.model.updateOne(filter, update);
     return result.matchedCount === 1;
   }
 
-  async deleteOne(filter: FilterQuery<T>): Promise<T | null> {
-    return this.model.findOneAndDelete(filter);
+  protected async updateOrFail(
+    filter: FilterQuery<T>,
+    update: UpdateQuery<T>,
+    errorMessage = 'Resource not found',
+  ): Promise<void> {
+    const result = await this.model.updateOne(filter, update);
+
+    if (result.matchedCount === 0) {
+      throw new CustomError(errorMessage, 404);
+    }
   }
 }

@@ -20,4 +20,12 @@ export const env = {
   JWT_REFRESH_SECRET: process.env['JWT_REFRESH_SECRET'],
   FRONTEND_URL: process.env['FRONTEND_URL'],
   FRONTEND_URL2: process.env['FRONTEND_URL2'],
+  REDIS_HOST: process.env['REDIS_HOST'],
+  REDIS_PORT: Number(process.env['REDIS_PORT']),
+  REDIS_PASSWORD: process.env['REDIS_PASSWORD'],
+  RESEND_OTP_MAX_AGE: Number(process.env['RESEND_OTP_MAX_AGE']),
+  OTP_TTL_SECONDS: Number(process.env['OTP_TTL_SECONDS']),
+  FORGOT_PASSWORD_TTL_SECONDS: Number(process.env['FORGOT_PASSWORD_TTL_SECONDS']),
+  REFRESH_TOKEN_TTL_SECONDS: Number(process.env['REFRESH_TOKEN_TTL_SECONDS']),
+  REFRESH_TOKEN_MAX_AGE: Number(process.env['REFRESH_TOKEN_MAX_AGE']),
 } as const;

@@ -1,23 +1,21 @@
 import { Router } from 'express';
 import type { Response, Request } from 'express';
-import AuthController from '../controllers/auth.controller.js';
-import AuthService from '../services/auth.service.js';
-import AuthUserRepository from '../repositories/authUser.repository.js';
-import UserRepository from '../repositories/user.repository.js';
-
-const authUserRepo = new AuthUserRepository();
-const userRepo = new UserRepository();
-const authService = new AuthService(authUserRepo, userRepo);
-const authController = new AuthController(authService);
+import { authController } from '../di/auth.di.js';
 
 const router = Router();
 
-router.get('/', (_req: Request, res: Response) => {
+router.get('/home', (_req: Request, res: Response) => {
   res.send('home route');
 });
-router.post('/signup', authController.registerWithEmail.bind(authController));
-router.post('/verify-otp', authController.verifyEmailOtp.bind(authController));
-router.post('/login', authController.userLogin.bind(authController));
+
+// Auth Routes
+router.post('/login', authController.loginUser.bind(authController));
+router.post('/signup', authController.signupUser.bind(authController));
+router.post('/verify-otp', authController.verifyUserOtp.bind(authController));
+router.post('/resend-otp', authController.resendUserOtp.bind(authController));
+router.post('/forgot-password', authController.forgotPasswordUser.bind(authController));
+router.post('/reset-password', authController.resetPasswordUser.bind(authController));
+router.post('/refresh', authController.refreshAccessToken.bind(authController));
 router.post('/logout', authController.logout.bind(authController));
 
-export default router;
+export { router as userRouter };

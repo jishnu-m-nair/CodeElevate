@@ -1,16 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
 import type { IUserDocument } from '../interface/models/user.interface.js';
+import { AUTH_PROVIDERS } from '../interface/common/common.interface.js';
 
 const UserSchema = new Schema<IUserDocument>(
   {
-    authUserId: {
-      type: Schema.Types.ObjectId,
-      ref: 'AuthUser',
-      required: true,
-      unique: true,
-      index: true,
-    },
-
     name: {
       type: String,
       required: true,
@@ -18,6 +11,14 @@ const UserSchema = new Schema<IUserDocument>(
     },
 
     email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    password: {
       type: String,
     },
 
@@ -37,6 +38,22 @@ const UserSchema = new Schema<IUserDocument>(
     profilePicture: {
       type: String,
       default: null,
+    },
+
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    providers: {
+      type: [String],
+      enum: AUTH_PROVIDERS,
+      required: true,
     },
 
     totalScore: {

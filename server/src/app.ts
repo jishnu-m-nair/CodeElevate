@@ -2,15 +2,17 @@ import './bootstrap.js';
 import express from 'express';
 import session from 'express-session';
 import cors from 'cors';
-import router from './routes/user.route.js';
-import healthRouter from './routes/health.route.js';
 import { env } from './config/env.config.js';
+import cookieParser from 'cookie-parser';
+import router from './routes/index.route.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const URLArray = [env.FRONTEND_URL, env.FRONTEND_URL2] as string[];
+app.use(cookieParser());
 
 app.use(
   cors({
@@ -36,7 +38,8 @@ app.use(
   }),
 );
 
-app.use('/', healthRouter);
-app.use('/', router);
+app.use('/api/v1', router);
+
+app.use(errorHandler);
 
 export default app;

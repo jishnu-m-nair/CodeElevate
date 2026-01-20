@@ -1,52 +1,31 @@
-import React from 'react';
-import AuthLeftPanel from '../../components/auth/AuthLeftPanel';
-import Footer from '../../components/common/Footer';
-import OtpVerificationForm from '../../components/auth/OtpVerificationForm';
-import { verifyOtp } from '../../services/api/auth.api';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAppDispatch } from "../../store/hooks";
+import BaseAuthLayout from "../../layouts/BaseAuthLayoutProps";
+import OtpInput from "../../components/auth/OtpInput";
+import { verifyOtpService, resendOtpService } from "../../services/auth.service";
 
-const OtpVerificationPage: React.FC = () => {
+export default function OtpVerificationPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const location = useLocation();
-  const email = location.state?.email;
-  const handleVerifyOtp = async (otp: string) => {
-    if (!email) {
-      console.error('Email not found for OTP verification');
-      return;
-    }
 
-    try {
-      await verifyOtp({ email, otp });
-
-      console.log('OTP verified successfully');
-
-      navigate('/login');
-    } catch (error: any) {
-      console.error('OTP verification failed', error?.response?.data || error.message);
-    }
+  const { email, role } = location.state as {
+    email: string;
+    role: "user" | "recruiter";
   };
 
-  const handleResendOtp = () => {
-    console.log('Resending OTP...');
+  const handleVerifyOtp = async (otp: string) => {
+    const redirect = await verifyOtpService(dispatch, email, otp, role);
+    navigate(redirect);
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-900">
-      <AuthLeftPanel />
-
-      <div className="w-full lg:w-1/2 flex items-center justify-center relative">
-        <div className="w-full max-w-md px-8">
-          <OtpVerificationForm
-            email="jishnu23@gmail.com"
-            onVerify={handleVerifyOtp}
-            onResend={handleResendOtp}
-          />
-        </div>
-
-        <Footer className="absolute bottom-4" />
-      </div>
-    </div>
+    <BaseAuthLayout>
+      <OtpInput
+        email={email}
+        onVerify={handleVerifyOtp}
+        onResend={() => resendOtpService(email, role)}
+      />
+    </BaseAuthLayout>
   );
-};
-
-export default OtpVerificationPage;
+}

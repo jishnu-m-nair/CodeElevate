@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Search, Menu, LogOut } from 'lucide-react';
 import { logoutUser } from '../../services/api/auth.api';
 
-const Navbar: React.FC = () => {
+export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -62,5 +62,3 @@ const Navbar: React.FC = () => {
     </nav>
   );
 };
-
-export default Navbar;

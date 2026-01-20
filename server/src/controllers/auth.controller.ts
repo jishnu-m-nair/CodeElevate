@@ -220,7 +220,8 @@ class AuthController {
     res.cookie('refresh_token', token, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
+      path: '/',
       maxAge: env.REFRESH_TOKEN_MAX_AGE,
     });
   }

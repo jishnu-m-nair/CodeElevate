@@ -5,7 +5,7 @@ import { authController } from '../di/auth.di.js';
 const router = Router();
 
 router.get('/home', (_req: Request, res: Response) => {
-  res.send('home route');
+  res.status(200).json({ success: true, message: 'home page', data: null });
 });
 
 // Auth Routes

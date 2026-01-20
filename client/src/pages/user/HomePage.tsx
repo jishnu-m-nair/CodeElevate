@@ -4,7 +4,7 @@ import HeroSection from '../../components/user/HeroSection';
 import FeatureSection from '../../components/user/FeatureSection';
 import StatsSection from '../../components/user/StatsSection';
 
-const HomePage = () => {
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Navbar />
@@ -19,5 +19,3 @@ const HomePage = () => {
     </div>
   );
 };
-
-export default HomePage;

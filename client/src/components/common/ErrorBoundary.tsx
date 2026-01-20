@@ -1,6 +1,5 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useRouteError, isRouteErrorResponse } from 'react-router-dom';
+import React from "react";
+import { Link, useLocation, useRouteError, isRouteErrorResponse } from "react-router-dom";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -10,7 +9,10 @@ interface ErrorBoundaryState {
   error?: Error;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { error: undefined };
@@ -24,26 +26,28 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (this.state.error) {
       return <ErrorFallback error={this.state.error} />;
     }
+
     return this.props.children;
   }
 }
 
-const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
+function ErrorFallback({ error }: { error?: Error }) {
   const location = useLocation();
   const routeError = useRouteError();
 
-  let errorMessage = error?.message || 'Something went wrong. Please try again later';
-  let errorTitle = 'oops!';
-  let errorImage = '/images/error.jpg';
+  let errorMessage =
+    error?.message || "Something went wrong. Please try again later";
+  let errorTitle = "Oops!";
+  let errorImage = "/images/error.jpg";
 
   if (isRouteErrorResponse(routeError)) {
     if (routeError.status === 404) {
-      errorTitle = '404 - Page not found';
+      errorTitle = "404 - Page not found";
       errorMessage = `The page "${location.pathname}" doesn't exist`;
-      errorImage = 'images/error404.jpg';
+      errorImage = "/images/error404.jpg";
     } else if (routeError.status === 500) {
-      errorTitle = 'Internal Server Error';
-      errorMessage = 'Something went wrong on our end.Please try again later';
+      errorTitle = "Internal Server Error";
+      errorMessage = "Something went wrong on our end. Please try again later";
     } else {
       errorTitle = `Error ${routeError.status}`;
       errorMessage = routeError.statusText || errorMessage;
@@ -54,8 +58,10 @@ const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
       <div className="max-w-lg w-full bg-white rounded-lg shadow-md p-8 text-center">
         <img src={errorImage} alt="Error Illustration" className="w-64 h-64 mx-auto mb-8" />
+
         <h1 className="text-2xl font-bold text-gray-800 mb-2">{errorTitle}</h1>
         <p className="text-gray-600 mb-8">{errorMessage}</p>
+
         <div className="flex justify-center space-x-4">
           <Link
             to="/"
@@ -63,6 +69,7 @@ const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
           >
             Go Home
           </Link>
+
           <button
             onClick={() => window.history.back()}
             className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
@@ -73,6 +80,6 @@ const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
       </div>
     </div>
   );
-};
+}
 
 export default ErrorBoundary;

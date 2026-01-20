@@ -29,7 +29,7 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
 } from '../utils/authTokens.js';
-import { sendOtpMail } from '../utils/mailer.js';
+import { sendOtpMail, sendResetPasswordMail } from '../utils/mailer.js';
 import { generateOtp } from '../utils/otp.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { generateUsernameBase } from '../utils/username.js';
@@ -302,7 +302,7 @@ class AuthService implements IAuthService {
     const key = `password:reset:user:${token}`;
 
     await redis.set(key, user.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
-    await sendOtpMail(email, token);
+    await sendResetPasswordMail(email, token, 'user');
 
     return response;
   }
@@ -324,7 +324,7 @@ class AuthService implements IAuthService {
     const key = `password:reset:recruiter:${token}`;
 
     await redis.set(key, recruiter.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
-    await sendOtpMail(email, token);
+    await sendResetPasswordMail(email, token, 'recruiter');
 
     return response;
   }
@@ -341,7 +341,6 @@ class AuthService implements IAuthService {
     if (!user.providers?.includes('local')) {
       throw new CustomError('Password reset not allowed for this account', 400);
     }
-
     const hashed = await hashPassword(newPassword);
     await this._userRepo.updatePassword(userId, hashed);
 

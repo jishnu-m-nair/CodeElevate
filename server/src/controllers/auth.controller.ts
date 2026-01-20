@@ -3,6 +3,8 @@ import { env } from '../config/env.config.js';
 import type { IAuthService } from '../interface/services/authService.interface.js';
 import { sendResponse } from '../utils/httpResponse.js';
 import { StatusCode } from '../enums/statusCode.js';
+import { verifyRefreshToken } from '../utils/authTokens.js';
+import { CustomError } from '../errors/CustomError.js';
 
 class AuthController {
   constructor(private readonly _authService: IAuthService) {}
@@ -199,15 +201,23 @@ class AuthController {
 
   logout = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { userId } = req.body;
       const refreshToken = req.cookies['refresh_token'];
+      if (!refreshToken) {
+        throw new CustomError('Unauthorized', 401);
+      }
+      const payload = verifyRefreshToken(refreshToken);
+      const userId = payload.sub;
+      if (!userId) {
+        throw new CustomError('Unauthorized', 401);
+      }
 
       const result = await this._authService.logout(userId, refreshToken);
 
       res.clearCookie('refresh_token', {
         httpOnly: true,
-        sameSite: 'strict',
         secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
       });
 
       sendResponse(res, StatusCode.OK, result);

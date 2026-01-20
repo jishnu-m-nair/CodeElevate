@@ -13,6 +13,7 @@ export default function LoginPage() {
       showSignup={false}
       showGoogle={false}
       showForgotPassword={false}
+      role={'admin'}
     />
   );
 }

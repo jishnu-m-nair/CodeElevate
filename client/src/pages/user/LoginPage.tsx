@@ -14,6 +14,7 @@ export default function LoginPage() {
       showGoogle={true}
       showForgotPassword={true}
       signupPath="/signup"
+      role={'user'}
     />
   );
 }

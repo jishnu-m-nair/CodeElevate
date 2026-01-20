@@ -8,13 +8,16 @@ const { combine, timestamp, colorize, printf, errors, json } = winston.format;
 const env: string = environment.NODE_ENV || 'development';
 
 const logFormat = printf((info) => {
-  const { level, timestamp } = info;
+  const { level, timestamp, message, stack, ...meta } = info;
 
-  const message =
-    info['stack'] ??
-    (typeof info.message === 'string' ? info.message : JSON.stringify(info.message));
+  let logMessage = stack ?? message;
 
-  return `${timestamp} [${level}]: ${message}`;
+  if (Object.keys(meta).length > 0) {
+    logMessage += ` | meta: ${JSON.stringify(meta)}`;
+  }
+  // (typeof info.message === 'string' ? info.message : JSON.stringify(info.message));
+
+  return `${timestamp} [${level}]: ${logMessage}`;
 });
 
 const transports: winston.transport[] = [];

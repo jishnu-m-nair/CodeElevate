@@ -1,31 +1,21 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
-import './App.css';
+import { Route, Routes } from 'react-router-dom';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { Toaster } from 'sonner';
+import UserRoutes from './routes/userRoutes';
+import RecruiterRoutes from './routes/RecruiterRoutes';
+import AdminRoutes from './routes/AdminRoutes';
 
-function App() {
-  const [count, setCount] = useState(0);
-
+const App = () => {
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
+      <Toaster richColors position="top-right" />
+      <Routes>
+        <Route path="/*" element={<ErrorBoundary><UserRoutes /></ErrorBoundary>} />
+        <Route path="/recruiter/*" element={<ErrorBoundary><RecruiterRoutes /></ErrorBoundary>} />
+        <Route path="/admin/*" element={<ErrorBoundary><AdminRoutes /></ErrorBoundary>} />
+      </Routes>
     </>
   );
-}
+};
 
 export default App;

@@ -15,7 +15,7 @@ interface HealthResponse {
   };
 }
 
-healthRouter.get('/server/health', (_req: Request, res: Response) => {
+healthRouter.get('/health', (_req: Request, res: Response) => {
   const response: HealthResponse = {
     status: 'ok',
     uptime: Math.floor(process.uptime()),
@@ -32,4 +32,4 @@ healthRouter.get('/server/health', (_req: Request, res: Response) => {
   res.status(200).json(response);
 });
 
-export default healthRouter;
+export { healthRouter };

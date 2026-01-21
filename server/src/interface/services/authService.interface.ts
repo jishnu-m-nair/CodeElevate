@@ -1,25 +1,38 @@
 import type { Types } from 'mongoose';
+import type {
+  ForgotPasswordRequestDTO,
+  LoginRequestDTO,
+  LoginResponseDTO,
+  OtpRequestDTO,
+  OtpVerificationResponseDTO,
+  RefreshAccessTokenResponseDTO,
+  ResendOtpRequestDTO,
+  ResetPasswordRequestDTO,
+  SignupRecruiterRequestDTO,
+  SignupResponseDTO,
+  SignupUserRequestDTO,
+} from '../../dto/auth.dto.js';
 
 export interface IAuthService {
-  loginUser(email: string, password: string): Promise<LoginResponse>;
-  loginRecruiter(email: string, password: string): Promise<LoginResponse>;
-  loginAdmin(email: string, password: string): Promise<LoginResponse>;
+  loginUser(data: LoginRequestDTO): Promise<LoginResponseDTO>;
+  loginRecruiter(data: LoginRequestDTO): Promise<LoginResponseDTO>;
+  loginAdmin(data: LoginRequestDTO): Promise<LoginResponseDTO>;
 
-  signupUser(userData: SignupUserDTO): Promise<SignupResponse>;
-  signupRecruiter(recruiterData: SignupRecruiterDTO): Promise<SignupResponse>;
+  signupUser(data: SignupUserRequestDTO): Promise<SignupResponseDTO>;
+  signupRecruiter(data: SignupRecruiterRequestDTO): Promise<SignupResponseDTO>;
 
-  verifyUserOtp(email: string, otp: string): Promise<OtpVerificationResponse>;
-  verifyRecruiterOtp(email: string, otp: string): Promise<OtpVerificationResponse>;
-  resendUserOtp(email: string): Promise<ResendOtpResponse>;
-  resendRecruiterOtp(email: string): Promise<ResendOtpResponse>;
+  verifyUserOtp(data: OtpRequestDTO): Promise<OtpVerificationResponseDTO>;
+  verifyRecruiterOtp(data: OtpRequestDTO): Promise<OtpVerificationResponseDTO>;
+  resendUserOtp(data: ResendOtpRequestDTO): Promise<void>;
+  resendRecruiterOtp(data: ResendOtpRequestDTO): Promise<void>;
 
-  forgotPasswordUser(email: string): Promise<ForgotPasswordResponse>;
-  forgotPasswordRecruiter(email: string): Promise<ForgotPasswordResponse>;
-  resetPasswordUser(token: string, newPassword: string): Promise<ResetPasswordResponse>;
-  resetPasswordRecruiter(token: string, newPassword: string): Promise<ResetPasswordResponse>;
+  forgotPasswordUser(data: ForgotPasswordRequestDTO): Promise<void>;
+  forgotPasswordRecruiter(data: ForgotPasswordRequestDTO): Promise<void>;
+  resetPasswordUser(data: ResetPasswordRequestDTO): Promise<void>;
+  resetPasswordRecruiter(data: ResetPasswordRequestDTO): Promise<void>;
 
-  logout(userId: string, refreshToken: string): Promise<LogoutResponse>;
-  refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse>;
+  logout(userId: string, refreshToken: string): Promise<void>;
+  refreshAccessToken(refreshToken: string): Promise<RefreshAccessTokenResponseDTO>;
 }
 
 export interface AuthEntity {
@@ -28,77 +41,6 @@ export interface AuthEntity {
   password?: string;
   providers?: string[];
   isVerified?: boolean;
-}
-
-export interface SignupUserDTO {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string;
-}
-
-export interface SignupRecruiterDTO {
-  email: string;
-  password: string;
-  companyName: string;
-  phone?: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  message: string;
-  data: {
-    accessToken: string;
-    refreshToken: string;
-    user: UserData | RecruiterData | AdminData;
-  };
-}
-
-export interface SignupResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    userId: string;
-    email: string;
-  };
-}
-
-export interface OtpVerificationResponse {
-  success: boolean;
-  message: string;
-  data: {
-    accessToken: string;
-    refreshToken: string;
-    user: UserData | RecruiterData;
-  };
-}
-
-export interface ResendOtpResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface ForgotPasswordResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface ResetPasswordResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface LogoutResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface RefreshTokenResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    accessToken: string;
-  };
 }
 
 export interface UserData {

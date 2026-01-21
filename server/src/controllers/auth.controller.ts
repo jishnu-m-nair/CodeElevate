@@ -12,16 +12,15 @@ class AuthController {
 
   loginUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password } = req.body;
-      const result = await this._authService.loginUser(email, password);
+      const result = await this._authService.loginUser(req.body);
 
-      const { refreshToken, ...safeData } = result.data;
+      const { refreshToken, ...safeData } = result;
 
       this.setRefreshCookie(res, refreshToken);
 
       sendResponse(res, StatusCode.OK, {
-        success: result.success,
-        message: result.message,
+        success: true,
+        message: Messages.auth.success.loginSuccess,
         data: safeData,
       });
     } catch (err) {
@@ -31,16 +30,15 @@ class AuthController {
 
   loginRecruiter = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password } = req.body;
-      const result = await this._authService.loginRecruiter(email, password);
+      const result = await this._authService.loginRecruiter(req.body);
 
-      const { refreshToken, ...safeData } = result.data;
+      const { refreshToken, ...safeData } = result;
 
       this.setRefreshCookie(res, refreshToken);
 
       sendResponse(res, StatusCode.OK, {
-        success: result.success,
-        message: result.message,
+        success: true,
+        message: Messages.auth.success.loginSuccess,
         data: safeData,
       });
     } catch (err) {
@@ -50,16 +48,15 @@ class AuthController {
 
   loginAdmin = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password } = req.body;
-      const result = await this._authService.loginAdmin(email, password);
+      const result = await this._authService.loginAdmin(req.body);
 
-      const { refreshToken, ...safeData } = result.data;
+      const { refreshToken, ...safeData } = result;
 
       this.setRefreshCookie(res, refreshToken);
 
       sendResponse(res, StatusCode.OK, {
-        success: result.success,
-        message: result.message,
+        success: true,
+        message: Messages.auth.success.loginSuccess,
         data: safeData,
       });
     } catch (err) {
@@ -71,7 +68,11 @@ class AuthController {
     try {
       const result = await this._authService.signupUser(req.body);
 
-      sendResponse(res, StatusCode.CREATED, result);
+      sendResponse(res, StatusCode.CREATED, {
+        success: true,
+        message: Messages.auth.success.signupSuccess,
+        data: result,
+      });
     } catch (err) {
       next(err);
     }
@@ -81,7 +82,11 @@ class AuthController {
     try {
       const result = await this._authService.signupRecruiter(req.body);
 
-      sendResponse(res, StatusCode.CREATED, result);
+      sendResponse(res, StatusCode.CREATED, {
+        success: true,
+        message: Messages.auth.success.signupSuccess,
+        data: result,
+      });
     } catch (err) {
       next(err);
     }
@@ -89,15 +94,14 @@ class AuthController {
 
   verifyUserOtp = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, otp } = req.body;
-      const result = await this._authService.verifyUserOtp(email, otp);
-      const { refreshToken, ...safeData } = result.data;
+      const result = await this._authService.verifyUserOtp(req.body);
+      const { refreshToken, ...safeData } = result;
 
       this.setRefreshCookie(res, refreshToken);
 
       sendResponse(res, StatusCode.OK, {
-        success: result.success,
-        message: result.message,
+        success: true,
+        message: Messages.auth.success.emailVerified,
         data: safeData,
       });
     } catch (err) {
@@ -107,15 +111,14 @@ class AuthController {
 
   verifyRecruiterOtp = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, otp } = req.body;
-      const result = await this._authService.verifyRecruiterOtp(email, otp);
-      const { refreshToken, ...safeData } = result.data;
+      const result = await this._authService.verifyRecruiterOtp(req.body);
+      const { refreshToken, ...safeData } = result;
 
       this.setRefreshCookie(res, refreshToken);
 
       sendResponse(res, StatusCode.OK, {
-        success: result.success,
-        message: result.message,
+        success: true,
+        message: Messages.auth.success.emailVerified,
         data: safeData,
       });
     } catch (err) {
@@ -125,10 +128,12 @@ class AuthController {
 
   resendUserOtp = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email } = req.body;
-      const result = await this._authService.resendUserOtp(email);
+      await this._authService.resendUserOtp(req.body);
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.otpResent,
+      });
     } catch (err) {
       next(err);
     }
@@ -136,10 +141,12 @@ class AuthController {
 
   resendRecruiterOtp = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email } = req.body;
-      const result = await this._authService.resendRecruiterOtp(email);
+      await this._authService.resendRecruiterOtp(req.body);
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.otpResent,
+      });
     } catch (err) {
       next(err);
     }
@@ -147,10 +154,12 @@ class AuthController {
 
   forgotPasswordUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email } = req.body;
-      const result = await this._authService.forgotPasswordUser(email);
+      await this._authService.forgotPasswordUser(req.body);
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.resetLinkSent,
+      });
     } catch (err) {
       next(err);
     }
@@ -158,10 +167,12 @@ class AuthController {
 
   forgotPasswordRecruiter = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email } = req.body;
-      const result = await this._authService.forgotPasswordRecruiter(email);
+      await this._authService.forgotPasswordRecruiter(req.body);
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.resetLinkSent,
+      });
     } catch (err) {
       next(err);
     }
@@ -169,10 +180,12 @@ class AuthController {
 
   resetPasswordUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { token, newPassword } = req.body;
-      const result = await this._authService.resetPasswordUser(token, newPassword);
+      await this._authService.resetPasswordUser(req.body);
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.passwordResetSuccess,
+      });
     } catch (err) {
       next(err);
     }
@@ -180,10 +193,12 @@ class AuthController {
 
   resetPasswordRecruiter = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { token, newPassword } = req.body;
-      const result = await this._authService.resetPasswordRecruiter(token, newPassword);
+      await this._authService.resetPasswordRecruiter(req.body);
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.passwordResetSuccess,
+      });
     } catch (err) {
       next(err);
     }
@@ -194,7 +209,11 @@ class AuthController {
       const refreshToken = req.cookies['refresh_token'];
       const result = await this._authService.refreshAccessToken(refreshToken);
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.tokenRefreshed,
+        data: result,
+      });
     } catch (err) {
       next(err);
     }
@@ -212,7 +231,7 @@ class AuthController {
         throw new CustomError(Messages.auth.error.unauthorized, 401);
       }
 
-      const result = await this._authService.logout(userId, refreshToken);
+      await this._authService.logout(userId, refreshToken);
 
       res.clearCookie('refresh_token', {
         httpOnly: true,
@@ -221,7 +240,10 @@ class AuthController {
         path: '/',
       });
 
-      sendResponse(res, StatusCode.OK, result);
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.logoutSuccess,
+      });
     } catch (err) {
       next(err);
     }

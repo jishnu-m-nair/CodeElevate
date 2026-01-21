@@ -12,18 +12,8 @@ import type {
   AdminData,
   AuthEntity,
   AuthPayload,
-  ForgotPasswordResponse,
   IAuthService,
-  LoginResponse,
-  LogoutResponse,
-  OtpVerificationResponse,
   RecruiterData,
-  RefreshTokenResponse,
-  ResendOtpResponse,
-  ResetPasswordResponse,
-  SignupRecruiterDTO,
-  SignupResponse,
-  SignupUserDTO,
   UserData,
 } from '../interface/services/authService.interface.js';
 import {
@@ -35,6 +25,19 @@ import { sendOtpMail, sendResetPasswordMail } from '../utils/mailer.js';
 import { generateOtp } from '../utils/otp.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { generateUsernameBase } from '../utils/username.js';
+import type {
+  ForgotPasswordRequestDTO,
+  LoginRequestDTO,
+  LoginResponseDTO,
+  OtpRequestDTO,
+  OtpVerificationResponseDTO,
+  RefreshAccessTokenResponseDTO,
+  ResendOtpRequestDTO,
+  ResetPasswordRequestDTO,
+  SignupRecruiterRequestDTO,
+  SignupResponseDTO,
+  SignupUserRequestDTO,
+} from '../dto/auth.dto.js';
 
 class AuthService implements IAuthService {
   constructor(
@@ -49,7 +52,7 @@ class AuthService implements IAuthService {
     role: AuthRole,
     accessCheck: (entity: T) => void,
     buildPayload: (entity: T) => P,
-  ): Promise<LoginResponse> {
+  ): Promise<LoginResponseDTO> {
     if (!entity) {
       throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
     }
@@ -71,13 +74,13 @@ class AuthService implements IAuthService {
     const tokens = await this.generateTokens(userData.id, role);
 
     return {
-      success: true,
-      message: Messages.auth.success.loginSuccess,
-      data: { ...tokens, user: userData },
+      ...tokens,
+      user: userData,
     };
   }
 
-  async loginUser(email: string, password: string): Promise<LoginResponse> {
+  async loginUser(data: LoginRequestDTO): Promise<LoginResponseDTO> {
+    const { email, password } = data;
     const user = await this._userRepo.findByEmail(email);
     if (!user) {
       throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
@@ -103,7 +106,8 @@ class AuthService implements IAuthService {
     );
   }
 
-  async loginRecruiter(email: string, password: string): Promise<LoginResponse> {
+  async loginRecruiter(data: LoginRequestDTO): Promise<LoginResponseDTO> {
+    const { email, password } = data;
     const recruiter = await this._recruiterRepo.findByEmail(email);
     if (!recruiter) {
       throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
@@ -129,7 +133,8 @@ class AuthService implements IAuthService {
     );
   }
 
-  async loginAdmin(email: string, password: string): Promise<LoginResponse> {
+  async loginAdmin(data: LoginRequestDTO): Promise<LoginResponseDTO> {
+    const { email, password } = data;
     const admin = await this._adminRepo.findByEmail(email);
     if (!admin) {
       throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
@@ -155,7 +160,7 @@ class AuthService implements IAuthService {
     );
   }
 
-  async signupUser(data: SignupUserDTO): Promise<SignupResponse> {
+  async signupUser(data: SignupUserRequestDTO): Promise<SignupResponseDTO> {
     const exists = await this._userRepo.findByEmail(data.email);
     if (exists) {
       throw new CustomError(Messages.auth.error.emailAlreadyRegistered, StatusCode.CONFLICT);
@@ -176,13 +181,12 @@ class AuthService implements IAuthService {
     await this.generateAndSendOtp(user.email, Users.USER);
 
     return {
-      success: true,
-      message: Messages.auth.success.signupSuccess,
-      data: { userId: user.id, email: user.email },
+      userId: user.id,
+      email: user.email,
     };
   }
 
-  async signupRecruiter(data: SignupRecruiterDTO): Promise<SignupResponse> {
+  async signupRecruiter(data: SignupRecruiterRequestDTO): Promise<SignupResponseDTO> {
     const exists = await this._recruiterRepo.findByEmail(data.email);
     if (exists) {
       throw new CustomError(Messages.auth.error.emailAlreadyRegistered, StatusCode.CONFLICT);
@@ -200,9 +204,8 @@ class AuthService implements IAuthService {
     await this.generateAndSendOtp(recruiter.email, Users.RECRUITER);
 
     return {
-      success: true,
-      message: Messages.auth.success.signupSuccess,
-      data: { userId: recruiter.id, email: recruiter.email },
+      userId: recruiter.id,
+      email: recruiter.email,
     };
   }
 
@@ -222,7 +225,8 @@ class AuthService implements IAuthService {
     await redis.del(key);
   }
 
-  async verifyUserOtp(email: string, otp: string): Promise<OtpVerificationResponse> {
+  async verifyUserOtp(data: OtpRequestDTO): Promise<OtpVerificationResponseDTO> {
+    const { email, otp } = data;
     await this.verifyOtp(email, Users.USER, otp);
 
     const user = await this._userRepo.findByEmail(email);
@@ -233,22 +237,19 @@ class AuthService implements IAuthService {
     const tokens = await this.generateTokens(user.id, Users.USER);
 
     return {
-      success: true,
-      message: Messages.auth.success.emailVerified,
-      data: {
-        ...tokens,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: Users.USER,
-          isVerified: true,
-        },
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: Users.USER,
+        isVerified: true,
       },
     };
   }
 
-  async verifyRecruiterOtp(email: string, otp: string): Promise<OtpVerificationResponse> {
+  async verifyRecruiterOtp(data: OtpRequestDTO): Promise<OtpVerificationResponseDTO> {
+    const { email, otp } = data;
     await this.verifyOtp(email, Users.RECRUITER, otp);
 
     const recruiter = await this._recruiterRepo.findByEmail(email);
@@ -261,22 +262,19 @@ class AuthService implements IAuthService {
     const tokens = await this.generateTokens(recruiter.id, Users.RECRUITER);
 
     return {
-      success: true,
-      message: Messages.auth.success.emailVerified,
-      data: {
-        ...tokens,
-        user: {
-          id: recruiter.id,
-          email: recruiter.email,
-          companyName: recruiter.companyName,
-          role: Users.RECRUITER,
-          isVerified: true,
-        },
+      ...tokens,
+      user: {
+        id: recruiter.id,
+        email: recruiter.email,
+        companyName: recruiter.companyName,
+        role: Users.RECRUITER,
+        isVerified: true,
       },
     };
   }
 
-  async resendUserOtp(email: string): Promise<ResendOtpResponse> {
+  async resendUserOtp(data: ResendOtpRequestDTO): Promise<void> {
+    const { email } = data;
     const user = await this._userRepo.findByEmail(email);
     if (!user) throw new CustomError(Messages.auth.error.userNotFound, StatusCode.NOT_FOUND);
     if (user.isVerified) {
@@ -284,14 +282,10 @@ class AuthService implements IAuthService {
     }
 
     await this.generateAndSendOtp(email, Users.USER);
-
-    return {
-      success: true,
-      message: Messages.auth.success.otpResent,
-    };
   }
 
-  async resendRecruiterOtp(email: string): Promise<ResendOtpResponse> {
+  async resendRecruiterOtp(data: ResendOtpRequestDTO): Promise<void> {
+    const { email } = data;
     const recruiter = await this._recruiterRepo.findByEmail(email);
     if (!recruiter) {
       throw new CustomError(Messages.auth.error.recruiterNotFound, StatusCode.NOT_FOUND);
@@ -301,25 +295,16 @@ class AuthService implements IAuthService {
     }
 
     await this.generateAndSendOtp(email, Users.RECRUITER);
-
-    return {
-      success: true,
-      message: Messages.auth.success.otpResent,
-    };
   }
 
-  async forgotPasswordUser(email: string): Promise<ForgotPasswordResponse> {
+  async forgotPasswordUser(data: ForgotPasswordRequestDTO): Promise<void> {
+    const { email } = data;
     const user = await this._userRepo.findByEmail(email);
 
-    const response = {
-      success: true,
-      message: Messages.auth.success.resetLinkSent,
-    };
-
-    if (!user) return response;
+    if (!user) return;
 
     if (!user.providers?.includes('local')) {
-      return response;
+      return;
     }
 
     const token = crypto.randomUUID();
@@ -327,21 +312,16 @@ class AuthService implements IAuthService {
 
     await redis.set(key, user.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
     await sendResetPasswordMail(email, token, Users.USER);
-
-    return response;
   }
 
-  async forgotPasswordRecruiter(email: string): Promise<ForgotPasswordResponse> {
+  async forgotPasswordRecruiter(data: ForgotPasswordRequestDTO): Promise<void> {
+    const { email } = data;
     const recruiter = await this._recruiterRepo.findByEmail(email);
 
-    const response = {
-      success: true,
-      message: Messages.auth.success.resetLinkSent,
-    };
-    if (!recruiter) return response;
+    if (!recruiter) return;
 
     if (!recruiter.providers?.includes('local')) {
-      return response;
+      return;
     }
 
     const token = crypto.randomUUID();
@@ -349,11 +329,10 @@ class AuthService implements IAuthService {
 
     await redis.set(key, recruiter.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
     await sendResetPasswordMail(email, token, Users.RECRUITER);
-
-    return response;
   }
 
-  async resetPasswordUser(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+  async resetPasswordUser(data: ResetPasswordRequestDTO): Promise<void> {
+    const { token, newPassword } = data;
     const key = `password:reset:user:${token}`;
     const userId = await redis.get(key);
 
@@ -373,14 +352,10 @@ class AuthService implements IAuthService {
     await this._userRepo.updatePassword(userId, hashed);
 
     await redis.del(key);
-
-    return {
-      success: true,
-      message: Messages.auth.success.passwordResetSuccess,
-    };
   }
 
-  async resetPasswordRecruiter(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+  async resetPasswordRecruiter(data: ResetPasswordRequestDTO): Promise<void> {
+    const { token, newPassword } = data;
     const key = `password:reset:recruiter:${token}`;
     const recruiterId = await redis.get(key);
 
@@ -401,25 +376,15 @@ class AuthService implements IAuthService {
     await this._recruiterRepo.updatePassword(recruiterId, hashed);
 
     await redis.del(key);
-
-    return {
-      success: true,
-      message: Messages.auth.success.passwordResetSuccess,
-    };
   }
 
-  async logout(userId: string, refreshToken: string): Promise<LogoutResponse> {
+  async logout(userId: string, refreshToken: string): Promise<void> {
     const key = `auth:logout:${refreshToken}`;
 
     await redis.set(key, userId, 'EX', env.REFRESH_TOKEN_TTL_SECONDS);
-
-    return {
-      success: true,
-      message: Messages.auth.success.logoutSuccess,
-    };
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
+  async refreshAccessToken(refreshToken: string): Promise<RefreshAccessTokenResponseDTO> {
     const blacklisted = await redis.get(`auth:logout:${refreshToken}`);
     if (blacklisted) {
       throw new CustomError(Messages.auth.error.sessionExpired, StatusCode.UNAUTHORIZED);
@@ -433,9 +398,7 @@ class AuthService implements IAuthService {
     });
 
     return {
-      success: true,
-      message: Messages.auth.success.tokenRefreshed,
-      data: { accessToken },
+      accessToken,
     };
   }
 

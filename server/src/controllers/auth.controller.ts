@@ -5,6 +5,7 @@ import { sendResponse } from '../utils/httpResponse.js';
 import { StatusCode } from '../enums/statusCode.js';
 import { verifyRefreshToken } from '../utils/authTokens.js';
 import { CustomError } from '../errors/CustomError.js';
+import { Messages } from '../enums/messages.js';
 
 class AuthController {
   constructor(private readonly _authService: IAuthService) {}
@@ -203,12 +204,12 @@ class AuthController {
     try {
       const refreshToken = req.cookies['refresh_token'];
       if (!refreshToken) {
-        throw new CustomError('Unauthorized', 401);
+        throw new CustomError(Messages.auth.error.unauthorized, 401);
       }
       const payload = verifyRefreshToken(refreshToken);
       const userId = payload.sub;
       if (!userId) {
-        throw new CustomError('Unauthorized', 401);
+        throw new CustomError(Messages.auth.error.unauthorized, 401);
       }
 
       const result = await this._authService.logout(userId, refreshToken);

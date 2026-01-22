@@ -3,6 +3,8 @@ import * as Yup from "yup";
 import { HiOutlineEye, HiOutlineEyeOff } from "react-icons/hi";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { ForgotPasswordModal } from "./ForgotPasswordModal";
+import type { UserRole } from "../../types/authTypes";
 
 interface LoginFormValues {
   email: string;
@@ -18,6 +20,7 @@ interface LoginFormProps {
   showSignupLink?: boolean;
   showForgotPassword?: boolean;
   signupPath?: string;
+  role?: UserRole
 
   onSubmit: (values: LoginFormValues) => Promise<void> | void;
   onGoogleLogin?: () => void;
@@ -37,9 +40,11 @@ export default function LoginForm({
   showForgotPassword = false,
   onSubmit,
   onGoogleLogin,
-  signupPath
+  signupPath,
+  role
 }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   return (
     <Formik<LoginFormValues>
@@ -100,9 +105,21 @@ export default function LoginForm({
           </div>
 
           {showForgotPassword && (
-            <Link to="/forgot-password" className="text-sm text-blue-500">
-              Forgot password?
-            </Link>
+            <>
+              <button
+                type="button"
+                onClick={() => setIsForgotModalOpen(true)}
+                className="text-sm text-blue-500 hover:underline"
+              >
+                Forgot password?
+              </button>
+
+              <ForgotPasswordModal
+                open={isForgotModalOpen}
+                onClose={() => setIsForgotModalOpen(false)}
+                role={role}
+              />
+            </>
           )}
 
           <button

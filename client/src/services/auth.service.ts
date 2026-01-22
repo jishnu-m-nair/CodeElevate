@@ -1,32 +1,55 @@
 import {
-  login,
+  forgotPasswordRecruiterApi,
+  forgotPasswordUserApi,
+  loginAdminApi,
+  loginRecruiterApi,
+  loginUserApi,
+  logoutAdmin,
+  logoutRecruiter,
+  logoutUser,
   resendRecruiterOtpApi,
   resendUserOtpApi,
+  resetPasswordRecruiterApi,
+  resetPasswordUserApi,
   signupRecruiter,
   signupUser,
   verifyRecruiterOtpApi,
   verifyUserOtpApi
 } from './api/auth.api';
-import { setAuth } from '../store/slices/authSlice';
-import { setUserProfile } from '../store/slices/userSlice';
-import type { LoginValues } from '../types/authTypes';
+import { clearAuth, setAuth } from '../store/slices/authSlice';
+import { clearUserProfile, setUserProfile } from '../store/slices/userSlice';
+import type { LoginValues, UserRole } from '../types/authTypes';
 import type { AppDispatch } from '../store/store';
-import type { RecruiterSignupRequest, UserSignupRequest } from './api/interface/authApi.interface';
+import type { LoginData, RecruiterSignupRequest, UserSignupRequest } from './api/interface/authApi.interface';
+import { clearRecruiterProfile, setRecruiterProfile } from '../store/slices/recruiterSlice';
+import { clearAdminProfile, setAdminProfile } from '../store/slices/adminSlice';
 
 export const loginUserService = async (
   dispatch: AppDispatch,
   values: LoginValues,
-) => loginBase(dispatch, values, "/home");
+) => {
+  const data = await loginUserApi(values);
+  handleLoginSuccess(dispatch, data);
+  return '/home';
+};
 
 export const loginRecruiterService = async (
   dispatch: AppDispatch,
   values: LoginValues,
-) => loginBase(dispatch, values, "/recruiter/dashboard");
+) => {
+  const data = await loginRecruiterApi(values);
+  handleLoginSuccess(dispatch, data);
+  return '/recruiter/dashboard';
+};
 
 export const loginAdminService = async (
   dispatch: AppDispatch,
   values: LoginValues,
-) => loginBase(dispatch, values, "/admin");
+) => {
+  const data = await loginAdminApi(values);
+  handleLoginSuccess(dispatch, data);
+  return '/admin/home';
+};
 
 export const signupUserService = async (
   data: UserSignupRequest
@@ -73,7 +96,15 @@ export const verifyOtpService = async (
     })
   );
 
-  dispatch(setUserProfile(user));
+  switch (user.role) {
+    case "user":
+      dispatch(setUserProfile(user));
+      break;
+
+    case "recruiter":
+      dispatch(setRecruiterProfile(user));
+      break;
+  }
 
   return user.role === "recruiter"
     ? "/recruiter/dashboard"
@@ -91,14 +122,38 @@ export const resendOtpService = async (
   }
 };
 
+export const forgotPasswordService = async (
+  email: string,
+  role?: UserRole
+): Promise<string> => {
+  if(!role || role === 'admin') return 'Not eligible for email reset';
+  if (role === "user") {
+    await forgotPasswordUserApi({ email });
+  } else if (role === "recruiter") {
+    await forgotPasswordRecruiterApi({ email });
+  }
 
-const loginBase = async (
-  dispatch: AppDispatch,
-  values: LoginValues,
-  redirect: string
+  return "If the email exists, reset link has been sent";
+};
+
+export const resetPasswordService = async (
+  newPassword: string,
+  role: 'user' | 'recruiter',
+  token: string,
 ) => {
-  const data = await login(values);
+  if (role === "user") {
+    await resetPasswordUserApi({ token, newPassword });
+  } else {
+    await resetPasswordRecruiterApi({ token, newPassword });
+  }
 
+  return;
+};
+
+const handleLoginSuccess = (
+  dispatch: AppDispatch,
+  data: LoginData
+) => {
   dispatch(
     setAuth({
       accessToken: data.accessToken,
@@ -106,8 +161,50 @@ const loginBase = async (
     })
   );
 
-  dispatch(setUserProfile(data.user));
+  switch (data.user.role) {
+    case 'user':
+      dispatch(setUserProfile(data.user));
+      break;
 
-  return redirect;
+    case 'recruiter':
+      dispatch(setRecruiterProfile(data.user));
+      break;
+
+    case 'admin':
+      dispatch(setAdminProfile(data.user));
+      break;
+  }
 };
 
+export const logoutService = async (
+  dispatch: AppDispatch,
+  role: UserRole
+): Promise<string> => {
+  try {
+    let redirectUrl = '';
+    switch (role) {
+    case "user":
+      await logoutUser();
+      break;
+
+    case "recruiter":
+      await logoutRecruiter();
+      redirectUrl = '/recruiter/login';
+      break;
+
+    case "admin":
+      await logoutAdmin();
+      redirectUrl = '/admin/login';
+      break;
+  }
+    return redirectUrl !== '' ? redirectUrl : '/login';
+  } catch (error) {
+    console.warn("Logout API failed", error);
+    return '/login'
+  } finally {
+    dispatch(clearAuth());
+    dispatch(clearUserProfile());
+    dispatch(clearRecruiterProfile());
+    dispatch(clearAdminProfile());
+  }
+};

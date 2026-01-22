@@ -3,6 +3,7 @@ import { env } from '../config/env.config.js';
 import { CustomError } from '../errors/CustomError.js';
 
 export interface TokenPayload extends JwtPayload {
+  sub: string;
   role: 'admin' | 'user' | 'recruiter';
 }
 
@@ -20,7 +21,7 @@ export const generateRefreshToken = (payload: TokenPayload): string => {
 
 export const verifyRefreshToken = (token: string): TokenPayload => {
   try {
-    const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET!) as JwtPayload;
+    const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET!) as TokenPayload;
 
     if (!decoded.sub || !decoded['role']) {
       throw new Error('Invalid token payload');

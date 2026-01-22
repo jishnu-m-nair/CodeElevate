@@ -1,6 +1,8 @@
 import { env } from '../config/env.config.js';
 import { redis } from '../config/redis.config.js';
-// import StatusCode from '../enums/statusCode.js';
+import { Users, type NonAdminRole } from '../enums/common.enums.js';
+import { Messages } from '../enums/messages.js';
+import { StatusCode } from '../enums/statusCode.js';
 import { CustomError } from '../errors/CustomError.js';
 import type { AuthRole } from '../interface/common/common.interface.js';
 import type { IAdminRepository } from '../interface/repositories/adminRepo.interface.js';
@@ -10,18 +12,8 @@ import type {
   AdminData,
   AuthEntity,
   AuthPayload,
-  ForgotPasswordResponse,
   IAuthService,
-  LoginResponse,
-  LogoutResponse,
-  OtpVerificationResponse,
   RecruiterData,
-  RefreshTokenResponse,
-  ResendOtpResponse,
-  ResetPasswordResponse,
-  SignupRecruiterDTO,
-  SignupResponse,
-  SignupUserDTO,
   UserData,
 } from '../interface/services/authService.interface.js';
 import {
@@ -29,10 +21,23 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
 } from '../utils/authTokens.js';
-import { sendOtpMail } from '../utils/mailer.js';
+import { sendOtpMail, sendResetPasswordMail } from '../utils/mailer.js';
 import { generateOtp } from '../utils/otp.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { generateUsernameBase } from '../utils/username.js';
+import type {
+  ForgotPasswordRequestDTO,
+  LoginRequestDTO,
+  LoginResponseDTO,
+  OtpRequestDTO,
+  OtpVerificationResponseDTO,
+  RefreshAccessTokenResponseDTO,
+  ResendOtpRequestDTO,
+  ResetPasswordRequestDTO,
+  SignupRecruiterRequestDTO,
+  SignupResponseDTO,
+  SignupUserRequestDTO,
+} from '../dto/auth.dto.js';
 
 class AuthService implements IAuthService {
   constructor(
@@ -47,21 +52,21 @@ class AuthService implements IAuthService {
     role: AuthRole,
     accessCheck: (entity: T) => void,
     buildPayload: (entity: T) => P,
-  ): Promise<LoginResponse> {
+  ): Promise<LoginResponseDTO> {
     if (!entity) {
-      throw new CustomError('Invalid email or password', 401);
+      throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
     }
 
     accessCheck(entity);
 
-    if (role !== 'admin') {
+    if (role !== Users.ADMIN) {
       if (!entity.providers?.includes('local')) {
-        throw new CustomError('Invalid email or password', 401);
+        throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
       }
 
       const valid = await comparePassword(password, entity.password!);
       if (!valid) {
-        throw new CustomError('Invalid email or password', 401);
+        throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
       }
     }
 
@@ -69,83 +74,97 @@ class AuthService implements IAuthService {
     const tokens = await this.generateTokens(userData.id, role);
 
     return {
-      success: true,
-      message: 'Login successful',
-      data: { ...tokens, user: userData },
+      ...tokens,
+      user: userData,
     };
   }
 
-  async loginUser(email: string, password: string): Promise<LoginResponse> {
+  async loginUser(data: LoginRequestDTO): Promise<LoginResponseDTO> {
+    const { email, password } = data;
     const user = await this._userRepo.findByEmail(email);
-    if (!user) throw new CustomError('Invalid email or password', 401);
+    if (!user) {
+      throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
+    }
 
     return this.loginEntity<typeof user, UserData>(
       user,
       password,
-      'user',
+      Users.USER,
       (u) => {
         this.validateAccountAccess({ isBlocked: u.isBlocked });
-        if (!u.isVerified) throw new CustomError('Access denied', 403);
+        if (!u.isVerified) {
+          throw new CustomError(Messages.auth.error.accessDenied, StatusCode.FORBIDDEN);
+        }
       },
       (u): UserData => ({
         id: u.id,
         email: u.email,
         name: u.name,
-        role: 'user',
+        role: Users.USER,
         isVerified: u.isVerified,
       }),
     );
   }
 
-  async loginRecruiter(email: string, password: string): Promise<LoginResponse> {
+  async loginRecruiter(data: LoginRequestDTO): Promise<LoginResponseDTO> {
+    const { email, password } = data;
     const recruiter = await this._recruiterRepo.findByEmail(email);
-    if (!recruiter) throw new CustomError('Invalid email or password', 401);
+    if (!recruiter) {
+      throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
+    }
 
     return this.loginEntity<typeof recruiter, RecruiterData>(
       recruiter,
       password,
-      'recruiter',
+      Users.RECRUITER,
       (r) => {
         this.validateAccountAccess({ isBlocked: r.isBlocked });
-        if (!r.isVerified) throw new CustomError('Access denied', 403);
+        if (!r.isVerified) {
+          throw new CustomError(Messages.auth.error.accessDenied, StatusCode.FORBIDDEN);
+        }
       },
       (r): RecruiterData => ({
         id: r.id,
         email: r.email,
         companyName: r.companyName,
-        role: 'recruiter',
+        role: Users.RECRUITER,
         isVerified: r.isVerified,
       }),
     );
   }
 
-  async loginAdmin(email: string, password: string): Promise<LoginResponse> {
+  async loginAdmin(data: LoginRequestDTO): Promise<LoginResponseDTO> {
+    const { email, password } = data;
     const admin = await this._adminRepo.findByEmail(email);
-    if (!admin) throw new CustomError('Invalid email or password', 401);
+    if (!admin) {
+      throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
+    }
 
     return this.loginEntity<typeof admin, AdminData>(
       admin,
       password,
-      'admin',
+      Users.ADMIN,
       async (a) => {
         this.validateAccountAccess({ isActive: a.isActive });
 
         const valid = await comparePassword(password, a.password);
         if (!valid) {
-          throw new CustomError('Invalid email or password', 401);
+          throw new CustomError(Messages.auth.error.invalidCredentials, StatusCode.UNAUTHORIZED);
         }
       },
       (a): AdminData => ({
         id: a.id,
         email: a.email,
-        role: 'admin',
+        role: Users.ADMIN,
       }),
     );
   }
 
-  async signupUser(data: SignupUserDTO): Promise<SignupResponse> {
+  async signupUser(data: SignupUserRequestDTO): Promise<SignupResponseDTO> {
     const exists = await this._userRepo.findByEmail(data.email);
-    if (exists) throw new CustomError('Email already registered', 409);
+    if (exists) {
+      throw new CustomError(Messages.auth.error.emailAlreadyRegistered, StatusCode.CONFLICT);
+    }
 
     const password = await hashPassword(data.password);
 
@@ -159,18 +178,19 @@ class AuthService implements IAuthService {
       isVerified: false,
     });
 
-    await this.generateAndSendOtp(user.email, 'user');
+    await this.generateAndSendOtp(user.email, Users.USER);
 
     return {
-      success: true,
-      message: 'Signup successful. Please verify your email.',
-      data: { userId: user.id, email: user.email },
+      userId: user.id,
+      email: user.email,
     };
   }
 
-  async signupRecruiter(data: SignupRecruiterDTO): Promise<SignupResponse> {
+  async signupRecruiter(data: SignupRecruiterRequestDTO): Promise<SignupResponseDTO> {
     const exists = await this._recruiterRepo.findByEmail(data.email);
-    if (exists) throw new CustomError('Email already registered', 409);
+    if (exists) {
+      throw new CustomError(Messages.auth.error.emailAlreadyRegistered, StatusCode.CONFLICT);
+    }
 
     const password = await hashPassword(data.password);
 
@@ -181,216 +201,194 @@ class AuthService implements IAuthService {
       isVerified: false,
     });
 
-    await this.generateAndSendOtp(recruiter.email, 'recruiter');
+    await this.generateAndSendOtp(recruiter.email, Users.RECRUITER);
 
     return {
-      success: true,
-      message: 'Signup successful. Please verify your email.',
-      data: { userId: recruiter.id, email: recruiter.email },
+      userId: recruiter.id,
+      email: recruiter.email,
     };
   }
 
-  private async verifyOtp(email: string, role: 'user' | 'recruiter', otp: string): Promise<void> {
+  private async verifyOtp(email: string, role: NonAdminRole, otp: string): Promise<void> {
     const key = `otp:verify:${role}:${email}`;
     const data = await redis.get(key);
 
     if (!data) {
-      throw new CustomError('Invalid or expired OTP', 400);
+      throw new CustomError(Messages.auth.error.otpInvalid, StatusCode.BAD_REQUEST);
     }
 
     const { otp: storedOtp } = JSON.parse(data);
     if (storedOtp !== otp) {
-      throw new CustomError('Invalid or expired OTP', 400);
+      throw new CustomError(Messages.auth.error.otpInvalid, StatusCode.BAD_REQUEST);
     }
 
     await redis.del(key);
   }
 
-  async verifyUserOtp(email: string, otp: string): Promise<OtpVerificationResponse> {
-    await this.verifyOtp(email, 'user', otp);
+  async verifyUserOtp(data: OtpRequestDTO): Promise<OtpVerificationResponseDTO> {
+    const { email, otp } = data;
+    await this.verifyOtp(email, Users.USER, otp);
 
     const user = await this._userRepo.findByEmail(email);
-    if (!user) throw new CustomError('User not found', 404);
+    if (!user) throw new CustomError(Messages.auth.error.userNotFound, StatusCode.NOT_FOUND);
 
     await this._userRepo.verifyEmail(email);
 
-    const tokens = await this.generateTokens(user.id, 'user');
+    const tokens = await this.generateTokens(user.id, Users.USER);
 
     return {
-      success: true,
-      message: 'Email verified successfully',
-      data: {
-        ...tokens,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: 'user',
-          isVerified: true,
-        },
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: Users.USER,
+        isVerified: true,
       },
     };
   }
 
-  async verifyRecruiterOtp(email: string, otp: string): Promise<OtpVerificationResponse> {
-    await this.verifyOtp(email, 'recruiter', otp);
+  async verifyRecruiterOtp(data: OtpRequestDTO): Promise<OtpVerificationResponseDTO> {
+    const { email, otp } = data;
+    await this.verifyOtp(email, Users.RECRUITER, otp);
 
     const recruiter = await this._recruiterRepo.findByEmail(email);
-    if (!recruiter) throw new CustomError('Recruiter not found', 404);
+    if (!recruiter) {
+      throw new CustomError(Messages.auth.error.recruiterNotFound, StatusCode.NOT_FOUND);
+    }
 
     await this._recruiterRepo.verifyEmail(email);
 
-    const tokens = await this.generateTokens(recruiter.id, 'recruiter');
+    const tokens = await this.generateTokens(recruiter.id, Users.RECRUITER);
 
     return {
-      success: true,
-      message: 'Email verified successfully',
-      data: {
-        ...tokens,
-        user: {
-          id: recruiter.id,
-          email: recruiter.email,
-          companyName: recruiter.companyName,
-          role: 'recruiter',
-          isVerified: true,
-        },
+      ...tokens,
+      user: {
+        id: recruiter.id,
+        email: recruiter.email,
+        companyName: recruiter.companyName,
+        role: Users.RECRUITER,
+        isVerified: true,
       },
     };
   }
 
-  async resendUserOtp(email: string): Promise<ResendOtpResponse> {
+  async resendUserOtp(data: ResendOtpRequestDTO): Promise<void> {
+    const { email } = data;
     const user = await this._userRepo.findByEmail(email);
-    if (!user) throw new CustomError('User not found', 404);
-    if (user.isVerified) throw new CustomError('Email already verified', 400);
+    if (!user) throw new CustomError(Messages.auth.error.userNotFound, StatusCode.NOT_FOUND);
+    if (user.isVerified) {
+      throw new CustomError(Messages.auth.error.emailAlreadyVerified, StatusCode.BAD_REQUEST);
+    }
 
-    await this.generateAndSendOtp(email, 'user');
-
-    return {
-      success: true,
-      message: 'OTP resent successfully',
-    };
+    await this.generateAndSendOtp(email, Users.USER);
   }
 
-  async resendRecruiterOtp(email: string): Promise<ResendOtpResponse> {
+  async resendRecruiterOtp(data: ResendOtpRequestDTO): Promise<void> {
+    const { email } = data;
     const recruiter = await this._recruiterRepo.findByEmail(email);
-    if (!recruiter) throw new CustomError('Recruiter not found', 404);
-    if (recruiter.isVerified) throw new CustomError('Email already verified', 400);
+    if (!recruiter) {
+      throw new CustomError(Messages.auth.error.recruiterNotFound, StatusCode.NOT_FOUND);
+    }
+    if (recruiter.isVerified) {
+      throw new CustomError(Messages.auth.error.emailAlreadyVerified, StatusCode.BAD_REQUEST);
+    }
 
-    await this.generateAndSendOtp(email, 'recruiter');
-
-    return {
-      success: true,
-      message: 'OTP resent successfully',
-    };
+    await this.generateAndSendOtp(email, Users.RECRUITER);
   }
 
-  async forgotPasswordUser(email: string): Promise<ForgotPasswordResponse> {
+  async forgotPasswordUser(data: ForgotPasswordRequestDTO): Promise<void> {
+    const { email } = data;
     const user = await this._userRepo.findByEmail(email);
 
-    const response = {
-      success: true,
-      message: 'If an account exists, a reset link has been sent.',
-    };
-
-    if (!user) return response;
+    if (!user) return;
 
     if (!user.providers?.includes('local')) {
-      return response;
+      return;
     }
 
     const token = crypto.randomUUID();
     const key = `password:reset:user:${token}`;
 
     await redis.set(key, user.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
-    await sendOtpMail(email, token);
-
-    return response;
+    await sendResetPasswordMail(email, token, Users.USER);
   }
 
-  async forgotPasswordRecruiter(email: string): Promise<ForgotPasswordResponse> {
+  async forgotPasswordRecruiter(data: ForgotPasswordRequestDTO): Promise<void> {
+    const { email } = data;
     const recruiter = await this._recruiterRepo.findByEmail(email);
 
-    const response = {
-      success: true,
-      message: 'If an account exists, a reset link has been sent.',
-    };
-    if (!recruiter) return response;
+    if (!recruiter) return;
 
     if (!recruiter.providers?.includes('local')) {
-      return response;
+      return;
     }
 
     const token = crypto.randomUUID();
     const key = `password:reset:recruiter:${token}`;
 
     await redis.set(key, recruiter.id, 'EX', env.FORGOT_PASSWORD_TTL_SECONDS);
-    await sendOtpMail(email, token);
-
-    return response;
+    await sendResetPasswordMail(email, token, Users.RECRUITER);
   }
 
-  async resetPasswordUser(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+  async resetPasswordUser(data: ResetPasswordRequestDTO): Promise<void> {
+    const { token, newPassword } = data;
     const key = `password:reset:user:${token}`;
     const userId = await redis.get(key);
 
-    if (!userId) throw new CustomError('Invalid or expired reset link', 400);
-
-    const user = await this._userRepo.findById(userId);
-    if (!user) throw new CustomError('Invalid or expired reset link', 400);
-
-    if (!user.providers?.includes('local')) {
-      throw new CustomError('Password reset not allowed for this account', 400);
+    if (!userId) {
+      throw new CustomError(Messages.auth.error.resetLinkInvalid, StatusCode.BAD_REQUEST);
     }
 
+    const user = await this._userRepo.findById(userId);
+    if (!user) {
+      throw new CustomError(Messages.auth.error.resetLinkInvalid, StatusCode.BAD_REQUEST);
+    }
+
+    if (!user.providers?.includes('local')) {
+      throw new CustomError(Messages.auth.error.passwordResetNotAllowed, StatusCode.BAD_REQUEST);
+    }
     const hashed = await hashPassword(newPassword);
     await this._userRepo.updatePassword(userId, hashed);
 
     await redis.del(key);
-
-    return {
-      success: true,
-      message: 'Password reset successfully',
-    };
   }
 
-  async resetPasswordRecruiter(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+  async resetPasswordRecruiter(data: ResetPasswordRequestDTO): Promise<void> {
+    const { token, newPassword } = data;
     const key = `password:reset:recruiter:${token}`;
     const recruiterId = await redis.get(key);
 
-    if (!recruiterId) throw new CustomError('Invalid or expired reset link', 400);
+    if (!recruiterId) {
+      throw new CustomError(Messages.auth.error.resetLinkInvalid, StatusCode.BAD_REQUEST);
+    }
 
     const recruiter = await this._recruiterRepo.findById(recruiterId);
-    if (!recruiter) throw new CustomError('Invalid or expired reset link', 400);
+    if (!recruiter) {
+      throw new CustomError(Messages.auth.error.resetLinkInvalid, StatusCode.BAD_REQUEST);
+    }
 
     if (!recruiter.providers?.includes('local')) {
-      throw new CustomError('Password reset not allowed for this account', 400);
+      throw new CustomError(Messages.auth.error.passwordResetNotAllowed, StatusCode.BAD_REQUEST);
     }
 
     const hashed = await hashPassword(newPassword);
     await this._recruiterRepo.updatePassword(recruiterId, hashed);
 
     await redis.del(key);
-
-    return {
-      success: true,
-      message: 'Password reset successfully',
-    };
   }
 
-  async logout(userId: string, refreshToken: string): Promise<LogoutResponse> {
+  async logout(userId: string, refreshToken: string): Promise<void> {
     const key = `auth:logout:${refreshToken}`;
 
     await redis.set(key, userId, 'EX', env.REFRESH_TOKEN_TTL_SECONDS);
-
-    return {
-      success: true,
-      message: 'Logged out successfully',
-    };
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
+  async refreshAccessToken(refreshToken: string): Promise<RefreshAccessTokenResponseDTO> {
     const blacklisted = await redis.get(`auth:logout:${refreshToken}`);
-    if (blacklisted) throw new CustomError('Session expired', 401);
+    if (blacklisted) {
+      throw new CustomError(Messages.auth.error.sessionExpired, StatusCode.UNAUTHORIZED);
+    }
 
     const payload = verifyRefreshToken(refreshToken);
 
@@ -400,13 +398,11 @@ class AuthService implements IAuthService {
     });
 
     return {
-      success: true,
-      message: 'Token refreshed',
-      data: { accessToken },
+      accessToken,
     };
   }
 
-  private async generateAndSendOtp(email: string, role: 'user' | 'recruiter'): Promise<void> {
+  private async generateAndSendOtp(email: string, role: NonAdminRole): Promise<void> {
     const otp = generateOtp(6).toString();
     const key = `otp:verify:${role}:${email}`;
 
@@ -417,7 +413,7 @@ class AuthService implements IAuthService {
 
   private validateAccountAccess(options: { isBlocked?: boolean; isActive?: boolean }) {
     if (options.isBlocked === true || options.isActive === false) {
-      throw new CustomError('Access denied', 403);
+      throw new CustomError(Messages.auth.error.accessDenied, StatusCode.FORBIDDEN);
     }
   }
 

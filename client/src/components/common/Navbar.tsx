@@ -1,15 +1,18 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Search, Menu, LogOut } from 'lucide-react';
-import { logoutUser } from '../../services/api/auth.api';
+import { logoutService } from '../../services/auth.service';
+import { useAppDispatch } from '../../store/hooks';
+import { toast } from 'sonner';
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   const handleLogout = async () => {
     try {
-      await logoutUser();
-      localStorage.removeItem('accessToken');
-      navigate('/login');
+      const redirect = await logoutService(dispatch, 'user');
+      toast.success('User logout success');
+      navigate(redirect);
     } catch (error) {
       console.error('Logout failed', error);
     }

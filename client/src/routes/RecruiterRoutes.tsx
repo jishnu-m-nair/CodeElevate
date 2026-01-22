@@ -3,6 +3,7 @@ import DashboardPage from "../pages/recruiter/DashboardPage";
 import LoginPage from "../pages/recruiter/LoginPage";
 import SignupPage from "../pages/recruiter/SignupPage";
 import OtpVerificationPage from "../pages/auth/OtpVerificationPage";
+import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 
 export default function RecruiterRoutes() {
   return (
@@ -12,6 +13,7 @@ export default function RecruiterRoutes() {
       <Route path="login" element={<LoginPage />} />
       <Route path="signup" element={<SignupPage />} />
       <Route path="verify-otp" element={<OtpVerificationPage />} />
+      <Route path='reset-password' element={<ResetPasswordPage/>} />
 
       <Route path="dashboard" element={<DashboardPage />} />
 

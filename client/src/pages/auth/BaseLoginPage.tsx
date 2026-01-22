@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import LoginForm from "../../components/auth/LoginForm";
 import BaseAuthLayout from "../../layouts/BaseAuthLayoutProps";
 import { getApiErrorMessage } from "../../utils/getApiErrorMessage";
-import type { LoginValues } from "../../types/authTypes";
+import type { LoginValues, UserRole } from "../../types/authTypes";
 
 interface BaseLoginPageProps {
   title: string;
@@ -12,6 +12,7 @@ interface BaseLoginPageProps {
   showGoogle: boolean;
   showForgotPassword: boolean;
   signupPath?: string;
+  role?: UserRole;
 }
 
 export default function BaseLoginPage({
@@ -20,7 +21,8 @@ export default function BaseLoginPage({
   showSignup,
   showGoogle,
   showForgotPassword,
-  signupPath
+  signupPath,
+  role
 }: BaseLoginPageProps) {
   const navigate = useNavigate();
 
@@ -44,6 +46,7 @@ export default function BaseLoginPage({
         showForgotPassword={showForgotPassword}
         onSubmit={handleLogin}
         signupPath={signupPath}
+        role={role}
       />
     </BaseAuthLayout>
   );

@@ -23,7 +23,6 @@ import type { AppDispatch } from '../store/store';
 import type { LoginData, RecruiterSignupRequest, UserSignupRequest } from './api/interface/authApi.interface';
 import { clearRecruiterProfile, setRecruiterProfile } from '../store/slices/recruiterSlice';
 import { clearAdminProfile, setAdminProfile } from '../store/slices/adminSlice';
-import { setHttpAuthToken } from './http';
 
 export const loginUserService = async (
   dispatch: AppDispatch,
@@ -90,7 +89,7 @@ export const verifyOtpService = async (
 
   const { accessToken, user } = res.data.data;
 
-  setHttpAuthToken(accessToken);
+  localStorage.setItem('accessToken', accessToken);
 
   dispatch(
     setAuth({
@@ -158,7 +157,7 @@ const handleLoginSuccess = (
   data: LoginData
 ) => {
 
-  setHttpAuthToken(data.accessToken);
+  localStorage.setItem('accessToken', data.accessToken);
 
   dispatch(
     setAuth({
@@ -181,6 +180,9 @@ const handleLoginSuccess = (
       break;
   }
 };
+
+
+
 
 export const logoutService = async (
   dispatch: AppDispatch,
@@ -208,7 +210,7 @@ export const logoutService = async (
     console.warn("Logout API failed", error);
     return '/login'
   } finally {
-    setHttpAuthToken(undefined);
+    localStorage.removeItem('accessToken');
     dispatch(clearAuth());
     dispatch(clearUserProfile());
     dispatch(clearRecruiterProfile());

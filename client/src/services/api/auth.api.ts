@@ -30,7 +30,6 @@ export const loginAdminApi = async (data: LoginRequest): Promise<LoginData> => {
   return res.data.data;
 };
 
-
 export const signupUser = async (
   data: UserSignupRequest
 ): Promise<SignupResponse> => {

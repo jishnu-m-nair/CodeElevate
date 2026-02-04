@@ -38,6 +38,7 @@ import type {
   SignupResponseDTO,
   SignupUserRequestDTO,
 } from '../dto/auth.dto.js';
+import { verifyGoogleToken } from '../utils/googleAuth.js';
 
 class AuthService implements IAuthService {
   constructor(
@@ -158,6 +159,43 @@ class AuthService implements IAuthService {
         role: Users.ADMIN,
       }),
     );
+  }
+
+  async googleLoginUser(token: string): Promise<LoginResponseDTO> {
+    const { email, name } = await verifyGoogleToken(token);
+
+    let user = await this._userRepo.findByEmail(email);
+
+    if (user) {
+      this.validateAccountAccess({ isBlocked: user.isBlocked });
+
+      if (!user.providers?.includes('google')) {
+        await this._userRepo.addProvider(user.id, 'google');
+      }
+    } else {
+      const username = await this.generateUniqueUsername(name, email);
+
+      user = await this._userRepo.create({
+        email,
+        name,
+        username,
+        providers: ['google'],
+        isVerified: true,
+      });
+    }
+
+    const tokens = await this.generateTokens(user.id, Users.USER);
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: Users.USER,
+        isVerified: true,
+      },
+    };
   }
 
   async signupUser(data: SignupUserRequestDTO): Promise<SignupResponseDTO> {

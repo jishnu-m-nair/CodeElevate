@@ -23,6 +23,7 @@ router.post(
   validateBody(signupSchemaUser),
   authController.signupUser.bind(authController),
 );
+router.post('/google-login', authController.googleUserLogin.bind(authController));
 router.post(
   '/verify-otp',
   validateBody(otpSchema),

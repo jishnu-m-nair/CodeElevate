@@ -1,8 +1,11 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, UserPlus, AlertCircle,
   Trophy, CreditCard, BarChart3, FolderKanban, LogOut
 } from "lucide-react";
+import { useAppDispatch } from "../../store/hooks";
+import { logoutService } from "../../services/auth.service";
+import { toast } from "sonner";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -22,6 +25,18 @@ const navItems = [
 
 export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+    const dispatch = useAppDispatch();
+  
+    const handleLogout = async () => {
+      try {
+        const redirect = await logoutService(dispatch, 'admin');
+        toast.success('Admin logout success');
+        navigate(redirect);
+      } catch (error) {
+        console.error('Logout failed', error);
+      }
+    };
 
   return (
     <aside
@@ -73,18 +88,18 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
       </div>
 
       <div className="p-3">
-        <Link
-          to={'/admin/logout'}
+        <span
           className="
             w-full flex items-center gap-3 px-3 py-2
             text-sm font-medium text-gray-600
             hover:text-red-600 hover:bg-red-50
             rounded-lg transition
           "
+          onClick={handleLogout}
         >
           <LogOut size={18} />
           Logout
-        </Link>
+        </span>
       </div>
     </aside>
   );

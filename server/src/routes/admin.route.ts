@@ -4,6 +4,8 @@ import { authController } from '../di/auth.di.js';
 import { loginSchema } from '../schemas/auth.schema.js';
 import { validateBody } from '../middlewares/validation.middleware.js';
 import { adminController } from '../di/admin.di.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { authorize } from '../middlewares/role.middleware.js';
 
 const router = Router();
 
@@ -17,7 +19,12 @@ router.post('/refresh', authController.refreshAccessToken.bind(authController));
 router.post('/logout', authController.logout.bind(authController));
 
 //User Routes
-router.get('/users', adminController.listUsers.bind(adminController));
+router.get(
+  '/users',
+  authenticate,
+  authorize('admin'),
+  adminController.listUsers.bind(adminController),
+);
 router.patch('/users/:id/block', adminController.blockUser.bind(adminController));
 router.patch('/users/:id/unblock', adminController.unblockUser.bind(adminController));
 

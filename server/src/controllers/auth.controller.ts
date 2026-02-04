@@ -64,6 +64,25 @@ class AuthController {
     }
   };
 
+  googleUserLogin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { credential } = req.body;
+
+      const result = await this._authService.googleLoginUser(credential);
+      const { refreshToken, ...safeData } = result;
+
+      this.setRefreshCookie(res, refreshToken);
+
+      sendResponse(res, StatusCode.OK, {
+        success: true,
+        message: Messages.auth.success.loginSuccess,
+        data: safeData,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
   signupUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this._authService.signupUser(req.body);

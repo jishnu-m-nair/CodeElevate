@@ -18,14 +18,18 @@ export const setHttpAuthToken = (token?: string) => {
   }
 };
 
-http.interceptors.request.use((config) => {
-  console.log(
-    '[AXIOS REQUEST]',
-    config.url,
-    config.headers?.Authorization
-  );
-  return config;
-});
+http.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 http.interceptors.response.use(
   (response) => response,

@@ -10,8 +10,23 @@ export abstract class BaseRepository<T extends Document> {
     return await document.save();
   }
 
-  async findAll(filter: FilterQuery<T> = {}): Promise<T[]> {
-    return this.model.find(filter);
+  async findMany(
+    filter: FilterQuery<T> = {},
+    options?: {
+      skip?: number;
+      limit?: number;
+      sort?: Record<string, 1 | -1>;
+      select?: string;
+    },
+  ): Promise<T[]> {
+    const query = this.model.find(filter);
+
+    if (options?.skip) query.skip(options.skip);
+    if (options?.limit) query.limit(options.limit);
+    if (options?.sort) query.sort(options.sort);
+    if (options?.select) query.select(options.select);
+
+    return query.exec();
   }
 
   async findOne(filter: FilterQuery<T>): Promise<T | null> {
@@ -28,6 +43,10 @@ export abstract class BaseRepository<T extends Document> {
 
   async deleteOne(filter: FilterQuery<T>): Promise<T | null> {
     return this.model.findOneAndDelete(filter);
+  }
+
+  async count(filter: FilterQuery<T> = {}): Promise<number> {
+    return this.model.countDocuments(filter).exec();
   }
 
   protected async updateRaw(filter: FilterQuery<T>, update: UpdateQuery<T>): Promise<boolean> {

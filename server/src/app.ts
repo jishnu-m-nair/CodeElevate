@@ -8,12 +8,7 @@ import router from './routes/index.route.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 const URLArray = [env.FRONTEND_URL, env.FRONTEND_URL2] as string[];
-app.use(cookieParser());
-
 app.use(
   cors({
     origin: URLArray,
@@ -22,6 +17,11 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 );
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(cookieParser());
 
 app.use(
   session({

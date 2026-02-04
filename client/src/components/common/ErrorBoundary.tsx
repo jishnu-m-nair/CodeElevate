@@ -35,9 +35,8 @@ function ErrorFallback({ error }: { error?: Error }) {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <h1 className="text-xl font-bold">Something went wrong</h1>
+        <h1 className="text-xl font-bold text-black">Something went wrong</h1>
         <p>{error?.message}</p>
-
         <Link to="/">Go home</Link>
       </div>
     </div>

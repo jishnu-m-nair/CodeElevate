@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { Link } from 'react-router-dom';
 const AuthLeftPanel: React.FC = () => {
   return (
     <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
@@ -13,7 +13,9 @@ const AuthLeftPanel: React.FC = () => {
       <div className="absolute inset-0 bg-linear-to-br from-black/70 via-gray-900/80 to-black/90" />
 
       <div className="absolute top-8 left-8 z-10">
-        <h1 className="text-3xl font-bold text-white">CodeElevate</h1>
+        <Link to={'/'} >
+          <h1 className="text-3xl font-bold text-white">CodeElevate</h1>
+        </Link>
         <p className="mt-2 text-sm text-gray-300 max-w-xs">
           Elevate your coding skills. Practice, compete, and get hired.
         </p>

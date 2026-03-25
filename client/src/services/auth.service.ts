@@ -89,6 +89,8 @@ export const verifyOtpService = async (
 
   const { accessToken, user } = res.data.data;
 
+  localStorage.setItem('accessToken', accessToken);
+
   dispatch(
     setAuth({
       accessToken,
@@ -154,6 +156,9 @@ const handleLoginSuccess = (
   dispatch: AppDispatch,
   data: LoginData
 ) => {
+
+  localStorage.setItem('accessToken', data.accessToken);
+
   dispatch(
     setAuth({
       accessToken: data.accessToken,
@@ -175,6 +180,9 @@ const handleLoginSuccess = (
       break;
   }
 };
+
+
+
 
 export const logoutService = async (
   dispatch: AppDispatch,
@@ -202,6 +210,7 @@ export const logoutService = async (
     console.warn("Logout API failed", error);
     return '/login'
   } finally {
+    localStorage.removeItem('accessToken');
     dispatch(clearAuth());
     dispatch(clearUserProfile());
     dispatch(clearRecruiterProfile());

@@ -10,6 +10,14 @@ const http = axios.create({
   },
 });
 
+export const setHttpAuthToken = (token?: string) => {
+  if (token) {
+    http.defaults.headers.common.Authorization = `Bearer ${token}`;
+  } else {
+    delete http.defaults.headers.common.Authorization;
+  }
+};
+
 http.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
@@ -27,7 +35,7 @@ http.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.log(error);
+      console.warn('Unauthorized – token may be expired');
     }
     return Promise.reject(error);
   }

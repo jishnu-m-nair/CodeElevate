@@ -17,6 +17,7 @@ export interface IAuthService {
   loginUser(data: LoginRequestDTO): Promise<LoginResponseDTO>;
   loginRecruiter(data: LoginRequestDTO): Promise<LoginResponseDTO>;
   loginAdmin(data: LoginRequestDTO): Promise<LoginResponseDTO>;
+  googleLoginUser(token: string): Promise<LoginResponseDTO>;
 
   signupUser(data: SignupUserRequestDTO): Promise<SignupResponseDTO>;
   signupRecruiter(data: SignupRecruiterRequestDTO): Promise<SignupResponseDTO>;

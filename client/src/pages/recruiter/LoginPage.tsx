@@ -11,7 +11,7 @@ export default function LoginPage() {
       title="Login as Recruiter"
       onLogin={(values: LoginValues) => loginRecruiterService(dispatch, values)}
       showSignup={true}
-      showGoogle={true}
+      showGoogle={false}
       showForgotPassword={true}
       signupPath="/recruiter/signup"
       role={'recruiter'}

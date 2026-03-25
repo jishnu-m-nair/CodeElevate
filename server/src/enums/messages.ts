@@ -27,6 +27,17 @@ export const Messages = {
       tokenRefreshed: 'Token refreshed',
     },
   },
+  admin: {
+    error: {
+      failedBlockUser: 'Failed to block user',
+      failedUnblockUser: 'Failed to unblock user',
+    },
+    success: {
+      userBlockSuccess: 'User blocked successful',
+      userUnblockSuccess: 'User unblock successful',
+      userListSuccess: 'User list fetched successfully',
+    },
+  },
 } as const;
 
 export type Messages = (typeof Messages)[keyof typeof Messages];

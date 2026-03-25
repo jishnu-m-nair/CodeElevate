@@ -13,23 +13,19 @@ export interface AuthRequest extends Request {
 
 export const authenticate = (req: AuthRequest, _res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
-
   if (!token) {
     throw new CustomError(Messages.auth.error.unauthorized, StatusCode.UNAUTHORIZED);
   }
 
   try {
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET!) as TokenPayload;
-
     if (!decoded.sub || !decoded['role']) {
       throw new CustomError(Messages.auth.error.invalidTokenPayload, StatusCode.UNAUTHORIZED);
     }
-
     req.user = {
       sub: decoded.sub,
       role: decoded['role'] as AuthPayload['role'],
     };
-
     next();
   } catch {
     throw new CustomError(Messages.auth.error.tokenInvalid, StatusCode.UNAUTHORIZED);

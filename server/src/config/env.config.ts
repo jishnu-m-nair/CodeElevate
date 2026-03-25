@@ -23,6 +23,8 @@ export const env = {
   REDIS_HOST: process.env['REDIS_HOST'],
   REDIS_PORT: Number(process.env['REDIS_PORT']),
   REDIS_PASSWORD: process.env['REDIS_PASSWORD'],
+  GOOGLE_CLIENT_ID: required('GOOGLE_CLIENT_ID'),
+  GOOGLE_CLIENT_SECRET: process.env['GOOGLE_CLIENT_SECRET'],
   RESEND_OTP_MAX_AGE: Number(process.env['RESEND_OTP_MAX_AGE']),
   OTP_TTL_SECONDS: Number(process.env['OTP_TTL_SECONDS']),
   FORGOT_PASSWORD_TTL_SECONDS: Number(process.env['FORGOT_PASSWORD_TTL_SECONDS']),

@@ -8,6 +8,7 @@ import type { LoginValues, UserRole } from "../../types/authTypes";
 interface BaseLoginPageProps {
   title: string;
   onLogin: (values: LoginValues) => Promise<string>;
+  onGoogleLogin?: (credential: string) => Promise<string>;
   showSignup: boolean;
   showGoogle: boolean;
   showForgotPassword: boolean;

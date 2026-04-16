@@ -9,13 +9,28 @@ interface RecruiterSignupFormProps {
     companyName: string;
     email: string;
     password: string;
+    companyWebsite: string;
   }) => Promise<void>;
 }
 
 const validationSchema = Yup.object({
-  companyName: Yup.string().required("Company name is required"),
+  companyName: Yup.string().required("Company name is required").max(50),
   email: Yup.string().email("Invalid email").required("Email is required"),
-  password: Yup.string().min(6, "Minimum 6 characters").required("Required"),
+  password: Yup.string().min(6, "Minimum 6 characters").max(20, "Maximum 20 characters").required("Required"),
+  companyWebsite: Yup.string()
+    .trim()
+    .min(4, "URL is too short")
+    .max(255, "URL is too long")
+    .matches(
+      /^((https?|ftp):\/\/)?(www.)?([a-z0-9]+\.)+[a-z:]{2,24}(\/.*)?$/i,
+      "Please enter a valid website URL"
+    )
+    .transform((value) => {
+      if (value && !/^https?:\/\//i.test(value)) {
+        return `https://${value}`;
+      }
+      return value;
+    }),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password")], "Passwords must match")
     .required("Required"),
@@ -32,6 +47,7 @@ export default function RecruiterSignupForm({
       initialValues={{
         companyName: "",
         email: "",
+        companyWebsite: "",
         password: "",
         confirmPassword: "",
       }}
@@ -40,6 +56,7 @@ export default function RecruiterSignupForm({
         await onSubmit({
           companyName: values.companyName,
           email: values.email,
+          companyWebsite: values.companyWebsite,
           password: values.password,
         });
         setSubmitting(false);
@@ -67,6 +84,13 @@ export default function RecruiterSignupForm({
             className="auth-input"
           />
           <ErrorMessage name="email" component="div" className="text-red-400 text-sm" />
+
+          <Field
+            name="companyWebsite"
+            placeholder="Company Website"
+            className="auth-input"
+          />
+          <ErrorMessage name="companyWebsite" component="div" className="text-red-400 text-sm" />
 
           <div className="relative">
             <Field

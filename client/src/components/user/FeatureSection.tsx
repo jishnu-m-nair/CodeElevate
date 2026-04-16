@@ -1,5 +1,6 @@
 import React from 'react';
 import { FEATURES } from '../../constants/features';
+import { Link } from 'react-router-dom';
 
 interface FeatureCardProps {
   title: string;
@@ -19,7 +20,9 @@ const FeatureSection: React.FC = () => {
   return (
     <section className="max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-6">
       {FEATURES.map((feature) => (
-        <FeatureCard key={feature.title} title={feature.title} description={feature.description} />
+        <Link to={`/${feature.title}`} key={feature.title.toLowerCase()}>
+        <FeatureCard title={feature.title} description={feature.description} />
+        </Link>
       ))}
     </section>
   );

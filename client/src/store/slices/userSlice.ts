@@ -17,6 +17,28 @@ const userSlice = createSlice({
     setUserProfile: (state, action: PayloadAction<AuthUserData>) => {
       state.profile = action.payload;
     },
+    getUserProfile: (state, action: PayloadAction<Partial<AuthUserData>>) => {
+      if (!state.profile) {
+        state.profile = {
+          role: "user",
+          isVerified: false,
+          ...action.payload,
+        } as AuthUserData;
+      } else {
+        state.profile = {
+          ...state.profile,
+          ...action.payload,
+        };
+      }
+    },
+    updateUserProfile: (state, action: PayloadAction<Partial<AuthUserData>>) => {
+      if (!state.profile) return;
+
+      state.profile = {
+        ...state.profile,
+        ...action.payload,
+      };
+    },
     clearUserProfile: (state) => {
       state.profile = null;
     },
@@ -24,5 +46,5 @@ const userSlice = createSlice({
 });
 
 
-export const { setUserProfile, clearUserProfile } = userSlice.actions;
+export const { setUserProfile, getUserProfile, updateUserProfile, clearUserProfile } = userSlice.actions;
 export default userSlice.reducer;

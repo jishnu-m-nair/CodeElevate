@@ -4,7 +4,7 @@ import { Users, type NonAdminRole } from '../enums/common.enums.js';
 import { Messages } from '../enums/messages.js';
 import { StatusCode } from '../enums/statusCode.js';
 import { CustomError } from '../errors/CustomError.js';
-import type { AuthRole } from '../interface/common/common.interface.js';
+import type { AuthProvider, AuthRole } from '../interface/common/common.interface.js';
 import type { IAdminRepository } from '../interface/repositories/adminRepo.interface.js';
 import type { IRecruiterRepository } from '../interface/repositories/recruiterRepo.interface.js';
 import type { IUserRepository } from '../interface/repositories/userRepo.interface.js';
@@ -103,6 +103,7 @@ class AuthService implements IAuthService {
         name: u.name,
         role: Users.USER,
         isVerified: u.isVerified,
+        providers: u.providers,
       }),
     );
   }
@@ -194,6 +195,7 @@ class AuthService implements IAuthService {
         name: user.name,
         role: Users.USER,
         isVerified: true,
+        providers: user.providers,
       },
     };
   }
@@ -232,12 +234,14 @@ class AuthService implements IAuthService {
 
     const password = await hashPassword(data.password);
 
-    const recruiter = await this._recruiterRepo.create({
+    const recruiterData = {
       ...data,
       password,
-      providers: ['local'],
+      providers: ['local'] as AuthProvider[],
       isVerified: false,
-    });
+    };
+
+    const recruiter = await this._recruiterRepo.create(recruiterData);
 
     await this.generateAndSendOtp(recruiter.email, Users.RECRUITER);
 
@@ -282,6 +286,7 @@ class AuthService implements IAuthService {
         name: user.name,
         role: Users.USER,
         isVerified: true,
+        providers: user.providers,
       },
     };
   }

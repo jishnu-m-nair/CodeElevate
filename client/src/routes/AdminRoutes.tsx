@@ -10,7 +10,7 @@ export default function AdminRoutes() {
       <Route index element={<AdminHomePage />} />
 
       <Route path="login" element={<AdminLoginPage />} />
-      <Route path="home" element={<AdminHomePage />} />
+      <Route path="home" element={<UsersPage />} />
       <Route path="users" element={<UsersPage />} />
 
       <Route path="*" element={<div className="text-black p-10">Admin Page Not Found</div>} />

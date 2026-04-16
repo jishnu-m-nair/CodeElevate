@@ -26,6 +26,20 @@ const RecruiterSchema = new Schema<IRecruiterDocument>(
       type: String,
     },
 
+    companyWebsite: {
+      type: String,
+    },
+
+    linkedInUrl: {
+      type: String,
+      default: null,
+    },
+
+    rejectionReason: {
+      type: String,
+      default: null,
+    },
+
     description: {
       type: String,
       default: null,

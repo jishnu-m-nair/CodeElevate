@@ -6,6 +6,9 @@ export interface IRecruiterDocument extends Document {
   companyName: string;
   email: string;
   password: string;
+  companyWebsite: string;
+  linkedInUrl?: string;
+  rejectionReason?: string;
   description?: string;
   phone?: string;
   profilePicture?: string;

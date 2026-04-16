@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Search, Menu, LogOut } from 'lucide-react';
+import { Bell, Search, Menu, LogOut, User } from 'lucide-react';
 import { logoutService } from '../../services/auth.service';
 import { useAppDispatch } from '../../store/hooks';
 import { toast } from 'sonner';
@@ -55,6 +55,10 @@ export default function Navbar() {
 
           <Bell size={18} className="text-gray-400 cursor-pointer" />
           <Menu size={20} className="text-gray-400 md:hidden" />
+          <Link to="/profile" className="hover:text-white">
+            <User className="w-6 h-6 text-gray-600" />
+          </Link>
+
           <LogOut
             size={18}
             className="text-gray-400 cursor-pointer hover:text-red-400 transition"

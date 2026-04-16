@@ -12,6 +12,7 @@ import type {
   SignupResponseDTO,
   SignupUserRequestDTO,
 } from '../../dto/auth.dto.js';
+import type { AuthProvider } from '../common/common.interface.js';
 
 export interface IAuthService {
   loginUser(data: LoginRequestDTO): Promise<LoginResponseDTO>;
@@ -50,6 +51,7 @@ export interface UserData {
   name: string;
   role: 'user';
   isVerified: boolean;
+  providers: AuthProvider[];
 }
 
 export interface RecruiterData {

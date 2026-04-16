@@ -1,4 +1,5 @@
 export type UserRole = "user" | "recruiter" | "admin";
+export type AuthProvider = 'local' | 'google';
 
 export interface BaseAuthUser {
   id: string;
@@ -11,6 +12,10 @@ export interface AuthUserData extends BaseAuthUser {
   role: "user";
   name: string;
   isVerified: boolean;
+  username: string;
+  phone: string;
+  email: string;
+  providers: AuthProvider[];
 }
 
 export interface AuthRecruiterData extends BaseAuthUser {

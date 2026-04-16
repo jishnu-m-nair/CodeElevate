@@ -22,7 +22,6 @@ export const loginSchema = z
   .strict();
 
 export const signupSchemaBase = z.object({
-  name: z.string().min(2),
   email: emailField,
   password: passwordField,
 });
@@ -36,6 +35,7 @@ export const signupSchemaUser = signupSchemaBase
 export const signupSchemaRecruiter = signupSchemaBase
   .extend({
     companyName: z.string(),
+    companyWebsite: z.string().min(3).max(255),
   })
   .strict();
 

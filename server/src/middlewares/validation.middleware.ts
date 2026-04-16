@@ -12,7 +12,8 @@ const validate =
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        return next(new CustomError('Validation failed', 400));
+        const firstMessage = err.issues[0]?.message || 'Validation failed';
+        return next(new CustomError(firstMessage, 400));
       }
       next(err);
     }

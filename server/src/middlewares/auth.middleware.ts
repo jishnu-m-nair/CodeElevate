@@ -11,7 +11,7 @@ export interface AuthRequest extends Request {
   user?: TokenPayload;
 }
 
-export const authenticate = (req: AuthRequest, _res: Response, next: NextFunction) => {
+export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
     throw new CustomError(Messages.auth.error.unauthorized, StatusCode.UNAUTHORIZED);
@@ -27,7 +27,13 @@ export const authenticate = (req: AuthRequest, _res: Response, next: NextFunctio
       role: decoded['role'] as AuthPayload['role'],
     };
     next();
-  } catch {
-    throw new CustomError(Messages.auth.error.tokenInvalid, StatusCode.UNAUTHORIZED);
+  } catch (err) {
+    if (err instanceof CustomError) {
+      return next(err);
+    }
+    if (err instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ expired: true, message: 'Token expired' });
+    }
+    return next(new CustomError(Messages.auth.error.tokenInvalid, StatusCode.UNAUTHORIZED));
   }
 };

@@ -70,7 +70,7 @@ export default function LoginForm({
           role: user.role,
         })
       );
-
+      console.log('profile', user)
       dispatch(setUserProfile(user));
       toast.success(message);
       navigate('/home');

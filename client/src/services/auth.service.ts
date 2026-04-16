@@ -168,6 +168,7 @@ const handleLoginSuccess = (
 
   switch (data.user.role) {
     case 'user':
+      console.log(data.user, 'userserrr')
       dispatch(setUserProfile(data.user));
       break;
 

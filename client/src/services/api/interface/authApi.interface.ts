@@ -19,6 +19,7 @@ export interface UserSignupRequest {
 export interface RecruiterSignupRequest {
   companyName: string;
   email: string;
+  companyWebsite: string;
   password: string;
 }
 

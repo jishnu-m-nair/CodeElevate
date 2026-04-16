@@ -38,6 +38,19 @@ export const Messages = {
       userListSuccess: 'User list fetched successfully',
     },
   },
+  user: {
+    error: {
+      notFound: 'User not found',
+      incorrectPassword: 'Current password is incorrect',
+      samePassword: 'New password must be different',
+      usernameTaken: 'Username already taken',
+    },
+    success: {
+      passwordUpdateSuccess: 'Password updated successfully',
+      profileFetched: 'Profile fetched successfully',
+      profileUpdated: 'Profile updated successfully',
+    },
+  },
 } as const;
 
 export type Messages = (typeof Messages)[keyof typeof Messages];

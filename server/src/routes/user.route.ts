@@ -9,6 +9,11 @@ import {
   resetPasswordSchema,
   signupSchemaUser,
 } from '../schemas/auth.schema.js';
+import { userProfileController } from '../di/userProfile.di.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { authorize } from '../middlewares/role.middleware.js';
+import { changePasswordSchema, updateProfileSchema } from '../schemas/userProfile.schema.js';
+import { Users } from '../enums/common.enums.js';
 
 const router = Router();
 
@@ -46,5 +51,27 @@ router.post(
 );
 router.post('/refresh', authController.refreshAccessToken.bind(authController));
 router.post('/logout', authController.logout.bind(authController));
+
+//Profile
+router.get(
+  '/profile',
+  authenticate,
+  authorize(Users.USER),
+  userProfileController.viewProfile.bind(userProfileController),
+);
+router.post(
+  '/profile',
+  authenticate,
+  authorize(Users.USER),
+  validateBody(updateProfileSchema),
+  userProfileController.editProfile.bind(userProfileController),
+);
+router.post(
+  '/change-password',
+  authenticate,
+  authorize(Users.USER),
+  validateBody(changePasswordSchema),
+  userProfileController.changePassword.bind(userProfileController),
+);
 
 export { router as userRouter };

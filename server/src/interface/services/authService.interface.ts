@@ -12,7 +12,7 @@ import type {
   SignupResponseDTO,
   SignupUserRequestDTO,
 } from '../../dto/auth.dto.js';
-import type { AuthProvider } from '../common/common.interface.js';
+import type { AuthProvider, RecruiterStatus } from '../common/common.interface.js';
 
 export interface IAuthService {
   loginUser(data: LoginRequestDTO): Promise<LoginResponseDTO>;
@@ -59,7 +59,9 @@ export interface RecruiterData {
   email: string;
   companyName: string;
   role: 'recruiter';
+  status: RecruiterStatus;
   isVerified: boolean;
+  companyWebsite: string;
 }
 
 export interface AdminData {

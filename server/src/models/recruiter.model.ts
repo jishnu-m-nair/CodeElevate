@@ -32,27 +32,27 @@ const RecruiterSchema = new Schema<IRecruiterDocument>(
 
     linkedInUrl: {
       type: String,
-      default: null,
     },
 
     rejectionReason: {
       type: String,
-      default: null,
     },
 
     description: {
       type: String,
-      default: null,
     },
 
     phone: {
       type: String,
-      default: null,
     },
 
     profilePicture: {
       type: String,
-      default: null,
+    },
+
+    bio: {
+      type: String,
+      default: '',
     },
 
     providers: {

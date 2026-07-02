@@ -9,6 +9,11 @@ import {
   resetPasswordSchema,
   signupSchemaRecruiter,
 } from '../schemas/auth.schema.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { authorize, checkRecruiterApproved } from '../middlewares/role.middleware.js';
+import { Users } from '../enums/common.enums.js';
+import { recruiterProfileController } from '../di/recruiterProfile.di.js';
+import { updateRecruiterProfileSchema } from '../schemas/recruiterProfile.schema.js';
 
 const router = Router();
 
@@ -49,5 +54,22 @@ router.post(
 );
 router.post('/refresh', authController.refreshAccessToken.bind(authController));
 router.post('/logout', authController.logout.bind(authController));
+
+//Profile
+router.get(
+  '/profile',
+  authenticate,
+  authorize(Users.RECRUITER),
+  // checkRecruiterApproved,
+  recruiterProfileController.viewProfile.bind(recruiterProfileController),
+);
+router.post(
+  '/profile',
+  authenticate,
+  authorize(Users.RECRUITER),
+  // checkRecruiterApproved,
+  validateBody(updateRecruiterProfileSchema),
+  recruiterProfileController.editProfile.bind(recruiterProfileController),
+);
 
 export { router as recruiterRouter };

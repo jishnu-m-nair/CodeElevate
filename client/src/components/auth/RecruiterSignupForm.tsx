@@ -141,9 +141,9 @@ export default function RecruiterSignupForm({
           </button>
 
           <div className="text-center text-gray-400">
-            Want to apply as a user?{" "}
-            <Link to="/signup" className="text-blue-500 font-semibold">
-              User signup
+            Already have an account?{" "}
+            <Link to="/recruiter/login" className="text-blue-500 font-semibold">
+              Login
             </Link>
           </div>
         </Form>

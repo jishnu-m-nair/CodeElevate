@@ -2,6 +2,7 @@ import { Document, Types } from 'mongoose';
 import type { AuthProvider, RecruiterStatus } from '../common/common.interface.js';
 
 export interface IRecruiterDocument extends Document {
+  reason: string;
   _id: Types.ObjectId;
   companyName: string;
   email: string;
@@ -10,6 +11,7 @@ export interface IRecruiterDocument extends Document {
   linkedInUrl?: string;
   rejectionReason?: string;
   description?: string;
+  bio?: string;
   phone?: string;
   profilePicture?: string;
   providers: AuthProvider[];

@@ -17,7 +17,8 @@ export const usernameField = z
 
 export const phoneField = z
   .string()
-  .regex(/^[6-9]\d{9}$/, 'Must be a valid 10-digit Indian phone number');
+  .regex(/^[6-9]\d{9}$/, 'Must be a valid 10-digit Indian phone number')
+  .optional();
 
 export const updateProfileSchema = z
   .object({

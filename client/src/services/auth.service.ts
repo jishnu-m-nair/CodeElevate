@@ -23,6 +23,7 @@ import type { AppDispatch } from '../store/store';
 import type { LoginData, RecruiterSignupRequest, UserSignupRequest } from './api/interface/authApi.interface';
 import { clearRecruiterProfile, setRecruiterProfile } from '../store/slices/recruiterSlice';
 import { clearAdminProfile, setAdminProfile } from '../store/slices/adminSlice';
+import { ADMIN_ROUTES, AUTH_ROUTES, RECRUITER_ROUTES, USER_ROUTES } from '../constants/routes';
 
 export const loginUserService = async (
   dispatch: AppDispatch,
@@ -30,7 +31,7 @@ export const loginUserService = async (
 ) => {
   const data = await loginUserApi(values);
   handleLoginSuccess(dispatch, data);
-  return '/home';
+  return USER_ROUTES.HOME;
 };
 
 export const loginRecruiterService = async (
@@ -39,7 +40,7 @@ export const loginRecruiterService = async (
 ) => {
   const data = await loginRecruiterApi(values);
   handleLoginSuccess(dispatch, data);
-  return '/recruiter/dashboard';
+  return RECRUITER_ROUTES.DASHBOARD;
 };
 
 export const loginAdminService = async (
@@ -48,7 +49,7 @@ export const loginAdminService = async (
 ) => {
   const data = await loginAdminApi(values);
   handleLoginSuccess(dispatch, data);
-  return '/admin/home';
+  return ADMIN_ROUTES.HOME;
 };
 
 export const signupUserService = async (
@@ -56,7 +57,7 @@ export const signupUserService = async (
 ) => {
   const res = await signupUser(data);
   return {
-    nextRoute: "/verify-otp",
+    nextRoute: AUTH_ROUTES.VERIFY_OTP_USER,
     email: res.email,
   };
 };
@@ -67,7 +68,7 @@ export const signupRecruiterService = async (
   const res = await signupRecruiter(data);
 
   return {
-    nextRoute: "/recruiter/verify-otp",
+    nextRoute: AUTH_ROUTES.VERIFY_OTP_RECRUITER,
     email: res.email,
   };
 };
@@ -109,8 +110,8 @@ export const verifyOtpService = async (
   }
 
   return user.role === "recruiter"
-    ? "/recruiter/dashboard"
-    : "/home";
+    ? RECRUITER_ROUTES.DASHBOARD
+    : USER_ROUTES.HOME;
 };
 
 export const resendOtpService = async (
@@ -168,11 +169,11 @@ const handleLoginSuccess = (
 
   switch (data.user.role) {
     case 'user':
-      console.log(data.user, 'userserrr')
       dispatch(setUserProfile(data.user));
       break;
 
     case 'recruiter':
+      console.log(data.user)
       dispatch(setRecruiterProfile(data.user));
       break;
 
@@ -198,18 +199,18 @@ export const logoutService = async (
 
     case "recruiter":
       await logoutRecruiter();
-      redirectUrl = '/recruiter/login';
+      redirectUrl = AUTH_ROUTES.LOGIN_RECRUITER;
       break;
 
     case "admin":
       await logoutAdmin();
-      redirectUrl = '/admin/login';
+      redirectUrl = AUTH_ROUTES.LOGIN_ADMIN;
       break;
   }
-    return redirectUrl !== '' ? redirectUrl : '/login';
+    return redirectUrl !== '' ? redirectUrl : AUTH_ROUTES.LOGIN_USER;
   } catch (error) {
     console.warn("Logout API failed", error);
-    return '/login'
+    return AUTH_ROUTES.LOGIN_USER
   } finally {
     localStorage.removeItem('accessToken');
     dispatch(clearAuth());

@@ -28,4 +28,44 @@ router.get(
 router.patch('/users/:id/block', adminController.blockUser.bind(adminController));
 router.patch('/users/:id/unblock', adminController.unblockUser.bind(adminController));
 
+//Recruiter routes
+router.get(
+  '/recruiters',
+  authenticate,
+  authorize('admin'),
+  adminController.listRecruiters.bind(adminController),
+);
+
+router.get(
+  '/recruiters/pending',
+  authenticate,
+  authorize('admin'),
+  adminController.getPendingRecruiters.bind(adminController),
+);
+
+router.patch(
+  '/recruiters/:id/block',
+  authenticate,
+  authorize('admin'),
+  adminController.blockRecruiter.bind(adminController),
+);
+router.patch(
+  '/recruiters/:id/unblock',
+  authenticate,
+  authorize('admin'),
+  adminController.unblockRecruiter.bind(adminController),
+);
+router.patch(
+  '/recruiters/approve/:id',
+  authenticate,
+  authorize('admin'),
+  adminController.approveRecruiter.bind(adminController),
+);
+router.patch(
+  '/recruiters/reject/:id',
+  authenticate,
+  authorize('admin'),
+  adminController.rejectRecruiter.bind(adminController),
+);
+
 export { router as adminRouter };

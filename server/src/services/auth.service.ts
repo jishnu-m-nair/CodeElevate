@@ -124,13 +124,26 @@ class AuthService implements IAuthService {
         if (!r.isVerified) {
           throw new CustomError(Messages.auth.error.accessDenied, StatusCode.FORBIDDEN);
         }
+
+        if (r.status === 'pending') {
+          throw new CustomError(
+            'Your account verification is going on, please try again later',
+            StatusCode.FORBIDDEN,
+          );
+        }
+
+        if (r.status === 'rejected') {
+          throw new CustomError(r.reason || 'Your account has been rejected', StatusCode.FORBIDDEN);
+        }
       },
       (r): RecruiterData => ({
         id: r.id,
         email: r.email,
         companyName: r.companyName,
         role: Users.RECRUITER,
+        status: r.status,
         isVerified: r.isVerified,
+        companyWebsite: r.companyWebsite,
       }),
     );
   }
@@ -311,7 +324,9 @@ class AuthService implements IAuthService {
         email: recruiter.email,
         companyName: recruiter.companyName,
         role: Users.RECRUITER,
+        status: recruiter.status,
         isVerified: true,
+        companyWebsite: recruiter.companyWebsite,
       },
     };
   }

@@ -1,3 +1,4 @@
+import { USER_ROUTES } from "../../constants/routes";
 import http from "../http";
 import type {
   UserProfileApiResponse,
@@ -9,7 +10,7 @@ import type {
 
 
 export const getProfileApi = async () => {
-  const res = await http.get<UserProfileApiResponse>("/profile");
+  const res = await http.get<UserProfileApiResponse>(USER_ROUTES.PROFILE);
 
   if (!res.data.success || !res.data.data) {
     throw new Error(res.data.message || "Failed to fetch profile");
@@ -19,7 +20,7 @@ export const getProfileApi = async () => {
 };
 
 export const editProfileApi = async (data: EditProfileRequest) => {
-  const res = await http.post<EditProfileApiResponse>("/profile", data);
+  const res = await http.post<EditProfileApiResponse>(USER_ROUTES.PROFILE, data);
 
   if (!res.data.success) {
     throw new Error(res.data.message || "Failed to update profile");
@@ -32,7 +33,7 @@ export const editProfileApi = async (data: EditProfileRequest) => {
 };
 
 export const changePasswordApi = async (data: ChangePasswordRequest) => {
-  const res = await http.post<BasicApiResponse>("/change-password", data);
+  const res = await http.post<BasicApiResponse>(USER_ROUTES.CHANGE_PASSWORD, data);
 
   if (!res.data.success) {
     throw new Error(res.data.message || "Failed to change password");

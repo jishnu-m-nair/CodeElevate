@@ -22,6 +22,8 @@ export interface AuthRecruiterData extends BaseAuthUser {
   role: "recruiter";
   companyName: string;
   isVerified: boolean;
+  status: string;
+  companyWebsite: string;
 }
 
 export interface AuthAdminData extends BaseAuthUser {

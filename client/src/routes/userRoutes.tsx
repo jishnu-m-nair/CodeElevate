@@ -7,24 +7,31 @@ import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import LandingPage from "../pages/auth/LandingPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import DummyJobs from "../pages/auth/dummy";
+import NotFound from "../components/common/NotFound";
+import PrivateRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
 
 export default function UserRoutes() {
   return (
     <Routes>
-      <Route path='/' element={<LandingPage />} />
+      <Route path="/" element={<LandingPage />} />
 
-      <Route path="login" element={<LoginPage />}/>
-      <Route path="profile" element={<ProfilePage />} />
-      <Route path="signup" element={<SignupPage />} />
-      <Route path="verify-otp" element={<OtpVerificationPage />} />
-      <Route path="home" element={<HomePage />} />
-      <Route path='reset-password' element={<ResetPasswordPage/>} />
-      <Route path='jobs' element={<DummyJobs />} />
+      {/* Public */}
+      <Route element={<PublicRoute />}>
+        <Route path="login" element={<LoginPage />} />
+        <Route path="signup" element={<SignupPage />} />
+        <Route path="verify-otp" element={<OtpVerificationPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
+      </Route>
 
-      <Route
-        path="*"
-        element={<div className="text-white p-10">Page Not Found</div>}
-      />
+      {/* Private */}
+      <Route element={<PrivateRoute allowedRole="user" />}>
+        <Route path="home" element={<HomePage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="jobs" element={<DummyJobs />} />
+      </Route>
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

@@ -1,4 +1,10 @@
 export const Messages = {
+  common: {
+    success: {
+      created: 'Created Successfully',
+      fetched: 'Fetched Successfully',
+    },
+  },
   auth: {
     error: {
       invalidCredentials: 'Invalid email or password',
@@ -31,11 +37,20 @@ export const Messages = {
     error: {
       failedBlockUser: 'Failed to block user',
       failedUnblockUser: 'Failed to unblock user',
+      failedBlockRecruiter: 'Failed to block recruiter',
+      failedUnblockRecruiter: 'Failed to unblock recruiter',
+      failedApproveRecruiter: 'Failed to approve recruiter',
+      failedRejectRecruiter: 'Failed to reject recruiter',
     },
     success: {
       userBlockSuccess: 'User blocked successful',
       userUnblockSuccess: 'User unblock successful',
       userListSuccess: 'User list fetched successfully',
+      recruiterBlockSuccess: 'Recruiter blocked successfully',
+      recruiterUnblockSuccess: 'Recruiter unblocked successfully',
+      recruiterListSuccess: 'Recruiter list fetched successfully',
+      recruiterApproveSuccess: 'Recruiter approved successfully',
+      recruiterRejectSuccess: 'Recruiter rejected successfully',
     },
   },
   user: {
@@ -47,6 +62,16 @@ export const Messages = {
     },
     success: {
       passwordUpdateSuccess: 'Password updated successfully',
+      profileFetched: 'Profile fetched successfully',
+      profileUpdated: 'Profile updated successfully',
+    },
+  },
+  recruiter: {
+    error: {
+      notFound: 'Recruiter Not found',
+      notUpdated: 'Data not updated',
+    },
+    success: {
       profileFetched: 'Profile fetched successfully',
       profileUpdated: 'Profile updated successfully',
     },
